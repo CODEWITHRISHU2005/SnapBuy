@@ -1,29 +1,7 @@
 "use client"
 
 import { create } from "zustand"
-
-interface Product {
-  id: number
-  name: string
-  brand: string
-  price: number
-  image: string
-  description: string
-  rating: number
-  reviews: number
-  category: string
-  stock: number
-  variants?: Array<{
-    id: number
-    type: string
-    name: string
-    value: string
-    priceModifier?: number
-    available: boolean
-  }>
-  createdAt: string
-  updatedAt: string
-}
+import { productApi, type Product } from "@/lib/api"
 
 interface ProductFilters {
   category?: string
@@ -55,6 +33,9 @@ interface ProductsStore {
   setSorting: (sortBy: string, sortOrder: "asc" | "desc") => void
   clearFilters: () => void
   refreshProducts: () => Promise<void>
+  createProduct: (productData: FormData) => Promise<boolean>
+  updateProduct: (id: number, productData: FormData) => Promise<boolean>
+  deleteProduct: (id: number) => Promise<boolean>
 }
 
 export const useProducts = create<ProductsStore>((set, get) => ({
@@ -66,39 +47,72 @@ export const useProducts = create<ProductsStore>((set, get) => ({
   totalPages: 1,
   totalProducts: 0,
   filters: {},
-  sortBy: "createdAt",
-  sortOrder: "desc",
+  sortBy: "name",
+  sortOrder: "asc",
 
   fetchProducts: async (page = 1, limit = 20) => {
     set({ isLoading: true, error: null })
 
     try {
-      const { filters, sortBy, sortOrder } = get()
-      const queryParams = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        sortBy,
-        sortOrder,
-        ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== undefined && value !== "")),
-      })
+      const { filters } = get()
+      
+      // Build query parameters
+      const params: Record<string, string> = {}
+      
+      if (filters.category) params.category = filters.category
+      if (filters.brand) params.brand = filters.brand
+      if (filters.search) params.search = filters.search
 
-      const response = await fetch(`/api/products?${queryParams}`)
+      const response = await productApi.getAll(params)
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch products")
+      if (!response.success) {
+        throw new Error(response.error || "Failed to fetch products")
       }
 
-      const data = await response.json()
+      const products = response.data || []
+      
+      // Apply client-side filtering
+      let filteredProducts = products.filter((product: Product) => {
+        if (filters.minPrice && product.price < filters.minPrice) return false
+        if (filters.maxPrice && product.price > filters.maxPrice) return false
+        if (filters.inStock && product.stock <= 0) return false
+        if (filters.rating && (!product.rating || product.rating < filters.rating)) return false
+        return true
+      })
+
+      // Apply client-side sorting
+      const { sortBy, sortOrder } = get()
+      filteredProducts.sort((a, b) => {
+        let aValue: any = a[sortBy as keyof Product]
+        let bValue: any = b[sortBy as keyof Product]
+        
+        if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase()
+          bValue = bValue.toLowerCase()
+        }
+        
+        if (sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1
+        } else {
+          return aValue < bValue ? 1 : -1
+        }
+      })
+
+      // Implement client-side pagination
+      const startIndex = (page - 1) * limit
+      const endIndex = startIndex + limit
+      const paginatedProducts = filteredProducts.slice(startIndex, endIndex)
 
       set({
-        products: data.products || [],
-        filteredProducts: data.products || [],
-        currentPage: data.currentPage || 1,
-        totalPages: data.totalPages || 1,
-        totalProducts: data.totalProducts || 0,
+        products: products,
+        filteredProducts: paginatedProducts,
+        currentPage: page,
+        totalPages: Math.ceil(filteredProducts.length / limit),
+        totalProducts: filteredProducts.length,
         isLoading: false,
       })
     } catch (error) {
+      console.error("Failed to fetch products:", error)
       set({
         isLoading: false,
         error: error instanceof Error ? error.message : "Failed to fetch products",
@@ -110,17 +124,16 @@ export const useProducts = create<ProductsStore>((set, get) => ({
     set({ isLoading: true, error: null })
 
     try {
-      const response = await fetch(`/api/products/${id}`)
+      const response = await productApi.getById(id)
 
-      if (!response.ok) {
-        throw new Error("Product not found")
+      if (!response.success) {
+        throw new Error(response.error || "Product not found")
       }
 
-      const product = await response.json()
       set({ isLoading: false })
-
-      return product
+      return response.data || null
     } catch (error) {
+      console.error("Failed to fetch product:", error)
       set({
         isLoading: false,
         error: error instanceof Error ? error.message : "Failed to fetch product",
@@ -133,30 +146,34 @@ export const useProducts = create<ProductsStore>((set, get) => ({
     set({ isLoading: true, error: null })
 
     try {
-      const { sortBy, sortOrder } = get()
-      const filters = { ...get().filters, ...additionalFilters, search: query }
+      const response = await productApi.search(query)
 
-      const queryParams = new URLSearchParams({
-        sortBy,
-        sortOrder,
-        ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== undefined && value !== "")),
-      })
-
-      const response = await fetch(`/api/products/search?${queryParams}`)
-
-      if (!response.ok) {
-        throw new Error("Search failed")
+      if (!response.success) {
+        throw new Error(response.error || "Search failed")
       }
 
-      const data = await response.json()
+      const products = response.data || []
+      const filters = { ...get().filters, ...additionalFilters, search: query }
+
+      // Apply additional filters
+      let filteredProducts = products.filter((product: Product) => {
+        if (filters.category && product.category !== filters.category) return false
+        if (filters.brand && product.brand !== filters.brand) return false
+        if (filters.minPrice && product.price < filters.minPrice) return false
+        if (filters.maxPrice && product.price > filters.maxPrice) return false
+        if (filters.inStock && product.stock <= 0) return false
+        if (filters.rating && (!product.rating || product.rating < filters.rating)) return false
+        return true
+      })
 
       set({
-        filteredProducts: data.products || [],
-        totalProducts: data.totalProducts || 0,
+        filteredProducts: filteredProducts,
+        totalProducts: filteredProducts.length,
         filters: { ...filters },
         isLoading: false,
       })
     } catch (error) {
+      console.error("Search failed:", error)
       set({
         isLoading: false,
         error: error instanceof Error ? error.message : "Search failed",
@@ -188,5 +205,83 @@ export const useProducts = create<ProductsStore>((set, get) => ({
   refreshProducts: async () => {
     const { currentPage } = get()
     await get().fetchProducts(currentPage)
+  },
+
+  createProduct: async (productData) => {
+    set({ isLoading: true, error: null })
+
+    try {
+      const response = await productApi.create(productData)
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to create product")
+      }
+
+      set({ isLoading: false })
+      
+      // Refresh the products list
+      await get().refreshProducts()
+      
+      return true
+    } catch (error) {
+      console.error("Failed to create product:", error)
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : "Failed to create product",
+      })
+      return false
+    }
+  },
+
+  updateProduct: async (id, productData) => {
+    set({ isLoading: true, error: null })
+
+    try {
+      const response = await productApi.update(id, productData)
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to update product")
+      }
+
+      set({ isLoading: false })
+      
+      // Refresh the products list
+      await get().refreshProducts()
+      
+      return true
+    } catch (error) {
+      console.error("Failed to update product:", error)
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : "Failed to update product",
+      })
+      return false
+    }
+  },
+
+  deleteProduct: async (id) => {
+    set({ isLoading: true, error: null })
+
+    try {
+      const response = await productApi.delete(id)
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to delete product")
+      }
+
+      set({ isLoading: false })
+      
+      // Refresh the products list
+      await get().refreshProducts()
+      
+      return true
+    } catch (error) {
+      console.error("Failed to delete product:", error)
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : "Failed to delete product",
+      })
+      return false
+    }
   },
 }))

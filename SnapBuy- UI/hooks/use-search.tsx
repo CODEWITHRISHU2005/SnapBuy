@@ -2,6 +2,7 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import { productApi, type Product } from "@/lib/api"
 
 interface SearchFilters {
   category?: string
@@ -13,20 +14,6 @@ interface SearchFilters {
   onSale?: boolean
   freeShipping?: boolean
   tags?: string[]
-}
-
-interface SearchResult {
-  id: number
-  name: string
-  brand: string
-  price: number
-  originalPrice?: number
-  image: string
-  rating: number
-  reviews: number
-  category: string
-  inStock: boolean
-  tags: string[]
 }
 
 interface SearchSuggestion {
@@ -46,7 +33,7 @@ interface SearchHistory {
 interface SearchStore {
   // State
   query: string
-  results: SearchResult[]
+  results: Product[]
   suggestions: SearchSuggestion[]
   filters: SearchFilters
   sortBy: string
@@ -81,8 +68,8 @@ export const useSearch = create<SearchStore>()(
       results: [],
       suggestions: [],
       filters: {},
-      sortBy: "relevance",
-      sortOrder: "desc",
+      sortBy: "name",
+      sortOrder: "asc",
       isLoading: false,
       error: null,
       totalResults: 0,
@@ -119,66 +106,61 @@ export const useSearch = create<SearchStore>()(
         set({ isLoading: true, error: null, query: searchQuery, currentPage: page })
 
         try {
-          const { filters, sortBy, sortOrder } = get()
+          const response = await productApi.search(searchQuery)
 
-          // Build query parameters
-          const params = new URLSearchParams({
-            q: searchQuery,
-            page: page.toString(),
-            limit: "20",
-            sortBy,
-            sortOrder,
-            ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== undefined && value !== "")),
+          if (!response.success) {
+            throw new Error(response.error || "Search failed")
+          }
+
+          const products = response.data || []
+          const { filters } = get()
+
+          // Apply client-side filtering
+          let filteredProducts = products.filter((product: Product) => {
+            if (filters.category && product.category !== filters.category) return false
+            if (filters.brand && product.brand !== filters.brand) return false
+            if (filters.minPrice && product.price < filters.minPrice) return false
+            if (filters.maxPrice && product.price > filters.maxPrice) return false
+            if (filters.inStock && product.stock <= 0) return false
+            if (filters.rating && (!product.rating || product.rating < filters.rating)) return false
+            return true
           })
 
-          // Simulate API call (replace with actual API)
-          await new Promise((resolve) => setTimeout(resolve, 500))
+          // Apply client-side sorting
+          const { sortBy, sortOrder } = get()
+          filteredProducts.sort((a, b) => {
+            let aValue: any = a[sortBy as keyof Product]
+            let bValue: any = b[sortBy as keyof Product]
+            
+            if (typeof aValue === 'string') {
+              aValue = aValue.toLowerCase()
+              bValue = bValue.toLowerCase()
+            }
+            
+            if (sortOrder === 'asc') {
+              return aValue > bValue ? 1 : -1
+            } else {
+              return aValue < bValue ? 1 : -1
+            }
+          })
 
-          // Mock search results
-          const mockResults: SearchResult[] = [
-            {
-              id: 1,
-              name: "iPhone 15 Pro",
-              brand: "Apple",
-              price: 999,
-              originalPrice: 1099,
-              image: "/placeholder.svg?height=200&width=200",
-              rating: 4.8,
-              reviews: 1250,
-              category: "Electronics",
-              inStock: true,
-              tags: ["smartphone", "ios", "camera", "5g"],
-            },
-            {
-              id: 2,
-              name: 'MacBook Pro 16"',
-              brand: "Apple",
-              price: 2499,
-              image: "/placeholder.svg?height=200&width=200",
-              rating: 4.9,
-              reviews: 890,
-              category: "Electronics",
-              inStock: true,
-              tags: ["laptop", "macbook", "m3", "professional"],
-            },
-            // Add more mock results...
-          ].filter(
-            (product) =>
-              product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              product.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
-          )
+          // Implement pagination (20 items per page)
+          const limit = 20
+          const startIndex = (page - 1) * limit
+          const endIndex = startIndex + limit
+          const paginatedProducts = filteredProducts.slice(startIndex, endIndex)
 
           set({
-            results: mockResults,
-            totalResults: mockResults.length,
-            totalPages: Math.ceil(mockResults.length / 20),
+            results: paginatedProducts,
+            totalResults: filteredProducts.length,
+            totalPages: Math.ceil(filteredProducts.length / limit),
             isLoading: false,
           })
 
           // Add to search history
-          get().addToHistory(searchQuery, mockResults.length)
+          get().addToHistory(searchQuery, filteredProducts.length)
         } catch (error) {
+          console.error("Search failed:", error)
           set({
             isLoading: false,
             error: error instanceof Error ? error.message : "Search failed",
@@ -193,15 +175,47 @@ export const useSearch = create<SearchStore>()(
         }
 
         try {
-          // Mock suggestions (replace with actual API)
-          const mockSuggestions: SearchSuggestion[] = [
-            { id: "1", text: "iPhone 15", type: "product", count: 45 },
-            { id: "2", text: "iPhone accessories", type: "category", count: 120 },
-            { id: "3", text: "Apple", type: "brand", count: 89 },
-            { id: "4", text: "iPhone 15 pro max", type: "query", count: 67 },
-          ].filter((suggestion) => suggestion.text.toLowerCase().includes(query.toLowerCase()))
+          // For now, we'll generate suggestions from the search results
+          const response = await productApi.search(query)
+          
+          if (response.success && response.data) {
+            const products = response.data
+            const suggestions: SearchSuggestion[] = []
+            
+            // Add product name suggestions
+            products.slice(0, 3).forEach((product, index) => {
+              suggestions.push({
+                id: `product-${index}`,
+                text: product.name,
+                type: "product",
+                count: 1
+              })
+            })
+            
+            // Add brand suggestions
+            const brands = [...new Set(products.map(p => p.brand))].slice(0, 2)
+            brands.forEach((brand, index) => {
+              suggestions.push({
+                id: `brand-${index}`,
+                text: brand,
+                type: "brand",
+                count: products.filter(p => p.brand === brand).length
+              })
+            })
+            
+            // Add category suggestions
+            const categories = [...new Set(products.map(p => p.category))].slice(0, 2)
+            categories.forEach((category, index) => {
+              suggestions.push({
+                id: `category-${index}`,
+                text: category,
+                type: "category",
+                count: products.filter(p => p.category === category).length
+              })
+            })
 
-          set({ suggestions: mockSuggestions })
+            set({ suggestions })
+          }
         } catch (error) {
           console.error("Failed to get suggestions:", error)
         }
@@ -244,20 +258,17 @@ export const useSearch = create<SearchStore>()(
 
       getPopularSearches: async () => {
         try {
-          // Mock popular searches (replace with actual API)
-          const popular = [
-            "iPhone",
-            "MacBook",
-            "AirPods",
-            "iPad",
-            "Samsung Galaxy",
-            "Nike shoes",
-            "Adidas",
-            "PlayStation",
-            "Xbox",
-            "Nintendo",
-          ]
-          set({ popularSearches: popular })
+          // Generate popular searches from current products
+          const response = await productApi.getAll()
+          
+          if (response.success && response.data) {
+            const products = response.data
+            const brands = [...new Set(products.map(p => p.brand))].slice(0, 5)
+            const categories = [...new Set(products.map(p => p.category))].slice(0, 5)
+            
+            const popular = [...brands, ...categories].slice(0, 8)
+            set({ popularSearches: popular })
+          }
         } catch (error) {
           console.error("Failed to get popular searches:", error)
         }

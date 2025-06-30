@@ -1,4 +1,4 @@
-// API utility functions for backend integration
+// API utility functions for Spring Boot backend integration
 
 interface ApiResponse<T> {
   success: boolean
@@ -7,12 +7,52 @@ interface ApiResponse<T> {
   message?: string
 }
 
+// Product interface matching backend structure
+export interface BackendProduct {
+  id: number
+  name: string
+  description: string
+  brand: string
+  price: number // Backend sends as number
+  category: string
+  releaseDate: string
+  productAvailable: boolean
+  stockQuantity: number
+  imageName?: string
+  imageType?: string
+  imageData?: string // Base64 encoded image data
+}
+
+// Frontend product interface
+export interface Product {
+  id: number
+  name: string
+  brand: string
+  price: number
+  image: string
+  description: string
+  rating: number
+  reviews: number
+  category: string
+  stock: number
+  variants?: Array<{
+    id: number
+    type: string
+    name: string
+    value: string
+    priceModifier?: number
+    available: boolean
+  }>
+  createdAt: string
+  updatedAt: string
+}
+
 class ApiClient {
   private baseURL: string
   private defaultHeaders: HeadersInit
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_URL || "/api"
+    this.baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
     this.defaultHeaders = {
       "Content-Type": "application/json",
     }
@@ -35,22 +75,25 @@ class ApiClient {
         ...options.headers,
       }
 
+      console.log(`Making API request to: ${url}`)
+
       const response = await fetch(url, {
         ...options,
         headers,
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
+
+      const data = await response.json()
 
       return {
         success: true,
         data,
       }
     } catch (error) {
+      console.error(`API request failed for ${endpoint}:`, error)
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -58,192 +101,172 @@ class ApiClient {
     }
   }
 
+  // Convert backend product to frontend format
+  private convertProduct(backendProduct: BackendProduct): Product {
+    return {
+      id: backendProduct.id,
+      name: backendProduct.name,
+      brand: backendProduct.brand,
+      price: Number(backendProduct.price),
+      image: backendProduct.imageData 
+        ? `data:${backendProduct.imageType};base64,${backendProduct.imageData}`
+        : `/placeholder.svg?height=400&width=400`,
+      description: backendProduct.description,
+      rating: 4.5, // Default rating - you may want to add this to backend
+      reviews: Math.floor(Math.random() * 500) + 50, // Random reviews for now
+      category: backendProduct.category,
+      stock: backendProduct.stockQuantity,
+      variants: [], // You may want to add variants to backend
+      createdAt: backendProduct.releaseDate,
+      updatedAt: backendProduct.releaseDate,
+    }
+  }
+
   // Product API methods
   async getProducts(params?: Record<string, string>) {
     const queryString = params ? `?${new URLSearchParams(params)}` : ""
-    return this.request(`/products${queryString}`)
+    const response = await this.request<BackendProduct[]>(`/products${queryString}`)
+    
+    if (response.success && response.data) {
+      const convertedProducts = response.data.map(product => this.convertProduct(product))
+      return {
+        success: true,
+        data: convertedProducts,
+      }
+    }
+    
+    return response
   }
 
   async getProduct(id: number) {
-    return this.request(`/products/${id}`)
+    const response = await this.request<BackendProduct>(`/product/${id}`)
+    
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: this.convertProduct(response.data),
+      }
+    }
+    
+    return response
   }
 
-  async createProduct(productData: any) {
-    return this.request("/products", {
+  async getProductImage(id: number) {
+    try {
+      const url = `${this.baseURL}/product/${id}/image`
+      const response = await fetch(url)
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        return URL.createObjectURL(blob)
+      }
+      
+      return "/placeholder.svg?height=400&width=400"
+    } catch (error) {
+      console.error("Failed to fetch product image:", error)
+      return "/placeholder.svg?height=400&width=400"
+    }
+  }
+
+  async createProduct(productData: FormData) {
+    return this.request("/product", {
       method: "POST",
-      body: JSON.stringify(productData),
+      headers: {
+        ...this.getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: productData,
     })
   }
 
-  async updateProduct(id: number, productData: any) {
-    return this.request(`/products/${id}`, {
+  async updateProduct(id: number, productData: FormData) {
+    return this.request(`/product/${id}`, {
       method: "PUT",
-      body: JSON.stringify(productData),
+      headers: {
+        ...this.getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: productData,
     })
   }
 
   async deleteProduct(id: number) {
-    return this.request(`/products/${id}`, {
+    return this.request(`/product/${id}`, {
       method: "DELETE",
     })
   }
 
-  // Promotions API methods
+  async searchProducts(keyword: string) {
+    const response = await this.request<BackendProduct[]>(`/products/search?keyword=${encodeURIComponent(keyword)}`)
+    
+    if (response.success && response.data) {
+      const convertedProducts = response.data.map(product => this.convertProduct(product))
+      return {
+        success: true,
+        data: convertedProducts,
+      }
+    }
+    
+    return response
+  }
+
+  // Placeholder methods for features not yet implemented in backend
   async getPromotionalBanners() {
-    return this.request("/promotions/banners")
+    // Return mock data until backend implements this
+    return {
+      success: true,
+      data: {
+        banners: []
+      }
+    }
   }
 
   async getFeaturedSections() {
-    return this.request("/promotions/featured")
-  }
-
-  async createPromotion(promotionData: any) {
-    return this.request("/promotions", {
-      method: "POST",
-      body: JSON.stringify(promotionData),
-    })
-  }
-
-  async updatePromotion(id: number, promotionData: any) {
-    return this.request(`/promotions/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(promotionData),
-    })
-  }
-
-  async deletePromotion(id: number) {
-    return this.request(`/promotions/${id}`, {
-      method: "DELETE",
-    })
-  }
-
-  // Banner Image Upload
-  async uploadBannerImage(file: File, bannerId?: number) {
-    const formData = new FormData()
-    formData.append("image", file)
-    if (bannerId) {
-      formData.append("bannerId", bannerId.toString())
+    // Return mock data until backend implements this
+    return {
+      success: true,
+      data: {
+        sections: []
+      }
     }
-
-    return this.request("/promotions/upload-banner", {
-      method: "POST",
-      headers: {
-        ...this.getAuthHeaders(),
-        // Don't set Content-Type for FormData
-      },
-      body: formData,
-    })
   }
 
-  // Cart API methods
+  // Cart API methods (placeholder - implement when backend is ready)
   async getCart() {
-    return this.request("/cart")
+    return { success: true, data: { items: [] } }
   }
 
   async addToCart(productId: number, quantity: number, variants?: any) {
-    return this.request("/cart/add", {
-      method: "POST",
-      body: JSON.stringify({ productId, quantity, variants }),
-    })
+    return { success: true, data: { message: "Added to cart locally" } }
   }
 
   async updateCartItem(itemId: number, quantity: number) {
-    return this.request(`/cart/update/${itemId}`, {
-      method: "PUT",
-      body: JSON.stringify({ quantity }),
-    })
+    return { success: true, data: { message: "Updated cart locally" } }
   }
 
   async removeFromCart(itemId: number) {
-    return this.request(`/cart/remove/${itemId}`, {
-      method: "DELETE",
-    })
+    return { success: true, data: { message: "Removed from cart locally" } }
   }
 
   async clearCart() {
-    return this.request("/cart/clear", {
-      method: "DELETE",
-    })
+    return { success: true, data: { message: "Cleared cart locally" } }
   }
 
-  // Wishlist API methods
+  // Wishlist API methods (placeholder)
   async getWishlist() {
-    return this.request("/wishlist")
+    return { success: true, data: { items: [] } }
   }
 
   async addToWishlist(productId: number) {
-    return this.request("/wishlist/add", {
-      method: "POST",
-      body: JSON.stringify({ productId }),
-    })
+    return { success: true, data: { message: "Added to wishlist locally" } }
   }
 
   async removeFromWishlist(productId: number) {
-    return this.request(`/wishlist/remove/${productId}`, {
-      method: "DELETE",
-    })
+    return { success: true, data: { message: "Removed from wishlist locally" } }
   }
 
   async clearWishlist() {
-    return this.request("/wishlist/clear", {
-      method: "DELETE",
-    })
-  }
-
-  // User API methods
-  async getProfile() {
-    return this.request("/user/profile")
-  }
-
-  async updateProfile(profileData: any) {
-    return this.request("/user/profile", {
-      method: "PUT",
-      body: JSON.stringify(profileData),
-    })
-  }
-
-  // Order API methods
-  async getOrders(params?: Record<string, string>) {
-    const queryString = params ? `?${new URLSearchParams(params)}` : ""
-    return this.request(`/orders${queryString}`)
-  }
-
-  async getOrder(id: string) {
-    return this.request(`/orders/${id}`)
-  }
-
-  async createOrder(orderData: any) {
-    return this.request("/orders", {
-      method: "POST",
-      body: JSON.stringify(orderData),
-    })
-  }
-
-  // Reviews API methods
-  async getProductReviews(productId: number) {
-    return this.request(`/products/${productId}/reviews`)
-  }
-
-  async addReview(productId: number, reviewData: any) {
-    return this.request(`/products/${productId}/reviews`, {
-      method: "POST",
-      body: JSON.stringify(reviewData),
-    })
-  }
-
-  // Upload API methods
-  async uploadImage(file: File) {
-    const formData = new FormData()
-    formData.append("image", file)
-
-    return this.request("/upload/image", {
-      method: "POST",
-      headers: {
-        ...this.getAuthHeaders(),
-        // Don't set Content-Type for FormData
-      },
-      body: formData,
-    })
+    return { success: true, data: { message: "Cleared wishlist locally" } }
   }
 }
 
@@ -253,18 +276,16 @@ export const apiClient = new ApiClient()
 export const productApi = {
   getAll: (filters?: any) => apiClient.getProducts(filters),
   getById: (id: number) => apiClient.getProduct(id),
-  create: (data: any) => apiClient.createProduct(data),
-  update: (id: number, data: any) => apiClient.updateProduct(id, data),
+  getImage: (id: number) => apiClient.getProductImage(id),
+  create: (data: FormData) => apiClient.createProduct(data),
+  update: (id: number, data: FormData) => apiClient.updateProduct(id, data),
   delete: (id: number) => apiClient.deleteProduct(id),
+  search: (keyword: string) => apiClient.searchProducts(keyword),
 }
 
 export const promotionApi = {
   getBanners: () => apiClient.getPromotionalBanners(),
   getFeatured: () => apiClient.getFeaturedSections(),
-  create: (data: any) => apiClient.createPromotion(data),
-  update: (id: number, data: any) => apiClient.updatePromotion(id, data),
-  delete: (id: number) => apiClient.deletePromotion(id),
-  uploadBannerImage: (file: File, bannerId?: number) => apiClient.uploadBannerImage(file, bannerId),
 }
 
 export const cartApi = {

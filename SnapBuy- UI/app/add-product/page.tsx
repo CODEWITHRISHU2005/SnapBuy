@@ -16,6 +16,8 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import ProtectedRoute from "@/components/protected-route"
 import Image from "next/image"
+import { useProducts } from "@/hooks/use-products"
+import { useRouter } from "next/navigation"
 
 interface ProductFormData {
   name: string
@@ -27,13 +29,6 @@ interface ProductFormData {
   releaseDate: string
   image: File | null
   productAvailable: boolean
-  variants: Array<{
-    type: string
-    name: string
-    value: string
-    priceModifier: string
-    available: boolean
-  }>
 }
 
 const categories = [
@@ -45,19 +40,16 @@ const categories = [
   { value: "books", label: "Books" },
   { value: "beauty", label: "Beauty & Personal Care" },
   { value: "automotive", label: "Automotive" },
-]
-
-const variantTypes = [
-  { value: "color", label: "Color" },
-  { value: "size", label: "Size" },
-  { value: "storage", label: "Storage" },
-  { value: "ram", label: "RAM" },
-  { value: "kit", label: "Kit" },
+  { value: "toys", label: "Toys" },
+  { value: "phone", label: "Phones" },
+  { value: "laptop", label: "Laptops" },
+  { value: "fashion", label: "Fashion" },
 ]
 
 function AddProductContent() {
   const { toast } = useToast()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { createProduct, isLoading } = useProducts()
+  const router = useRouter()
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [formData, setFormData] = useState<ProductFormData>({
     name: "",
@@ -69,7 +61,6 @@ function AddProductContent() {
     releaseDate: "",
     image: null,
     productAvailable: true,
-    variants: [],
   })
 
   const handleInputChange = (field: keyof ProductFormData, value: string | boolean | File | null) => {
@@ -95,36 +86,6 @@ function AddProductContent() {
     setImagePreview(null)
   }
 
-  const addVariant = () => {
-    setFormData((prev) => ({
-      ...prev,
-      variants: [
-        ...prev.variants,
-        {
-          type: "",
-          name: "",
-          value: "",
-          priceModifier: "0",
-          available: true,
-        },
-      ],
-    }))
-  }
-
-  const updateVariant = (index: number, field: string, value: string | boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      variants: prev.variants.map((variant, i) => (i === index ? { ...variant, [field]: value } : variant)),
-    }))
-  }
-
-  const removeVariant = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      variants: prev.variants.filter((_, i) => i !== index),
-    }))
-  }
-
   const validateForm = () => {
     const errors = []
 
@@ -139,16 +100,6 @@ function AddProductContent() {
       errors.push("Valid stock quantity is required")
     }
     if (!formData.releaseDate) errors.push("Release date is required")
-
-    // Validate variants
-    formData.variants.forEach((variant, index) => {
-      if (!variant.type) errors.push(`Variant ${index + 1}: Type is required`)
-      if (!variant.name.trim()) errors.push(`Variant ${index + 1}: Name is required`)
-      if (!variant.value.trim()) errors.push(`Variant ${index + 1}: Value is required`)
-      if (variant.priceModifier && isNaN(Number(variant.priceModifier))) {
-        errors.push(`Variant ${index + 1}: Price modifier must be a number`)
-      }
-    })
 
     return errors
   }
@@ -166,44 +117,73 @@ function AddProductContent() {
       return
     }
 
-    setIsSubmitting(true)
-
     try {
-      // Simulate API call - replace with actual backend integration
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // Create FormData for backend submission
+      const productFormData = new FormData()
+      
+      // Create product object
+      const productData = {
+        name: formData.name,
+        brand: formData.brand,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        category: formData.category,
+        stockQuantity: parseInt(formData.stockQuantity),
+        releaseDate: formData.releaseDate,
+        productAvailable: formData.productAvailable,
+      }
 
-      // Here you would typically:
-      // 1. Upload the image to your storage service
-      // 2. Create the product in your database
-      // 3. Handle the response
+      // Add product data as JSON string
+      productFormData.append("product", JSON.stringify(productData))
+      
+      // Add image file
+      if (formData.image) {
+        productFormData.append("imageFile", formData.image)
+      } else {
+        // Create a placeholder file if no image is provided
+        const placeholderBlob = new Blob(['placeholder'], { type: 'text/plain' })
+        const placeholderFile = new File([placeholderBlob], 'placeholder.txt', { type: 'text/plain' })
+        productFormData.append("imageFile", placeholderFile)
+      }
 
-      toast({
-        title: "Product Added Successfully!",
-        description: `${formData.name} has been added to your catalog.`,
-      })
+      const success = await createProduct(productFormData)
 
-      // Reset form
-      setFormData({
-        name: "",
-        brand: "",
-        description: "",
-        price: "",
-        category: "",
-        stockQuantity: "",
-        releaseDate: "",
-        image: null,
-        productAvailable: true,
-        variants: [],
-      })
-      setImagePreview(null)
+      if (success) {
+        toast({
+          title: "Product Added Successfully!",
+          description: `${formData.name} has been added to your catalog.`,
+        })
+
+        // Reset form
+        setFormData({
+          name: "",
+          brand: "",
+          description: "",
+          price: "",
+          category: "",
+          stockQuantity: "",
+          releaseDate: "",
+          image: null,
+          productAvailable: true,
+        })
+        setImagePreview(null)
+
+        // Redirect to admin dashboard
+        router.push("/admin")
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add product. Please try again.",
+          variant: "destructive",
+        })
+      }
     } catch (error) {
+      console.error("Error adding product:", error)
       toast({
         title: "Error",
         description: "Failed to add product. Please try again.",
         variant: "destructive",
       })
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -350,89 +330,6 @@ function AddProductContent() {
                 </div>
               </div>
 
-              {/* Product Variants */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">Product Variants (Optional)</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addVariant}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Variant
-                  </Button>
-                </div>
-
-                {formData.variants.map((variant, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                      <div className="space-y-2">
-                        <Label>Type</Label>
-                        <Select value={variant.type} onValueChange={(value) => updateVariant(index, "type", value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {variantTypes.map((type) => (
-                              <SelectItem key={type.value} value={type.value}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Name</Label>
-                        <Input
-                          placeholder="e.g., Red, Large, 128GB"
-                          value={variant.name}
-                          onChange={(e) => updateVariant(index, "name", e.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Value</Label>
-                        <Input
-                          placeholder="e.g., #ff0000, XL, 128GB"
-                          value={variant.value}
-                          onChange={(e) => updateVariant(index, "value", e.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Price Modifier (₹)</Label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          value={variant.priceModifier}
-                          onChange={(e) => updateVariant(index, "priceModifier", e.target.value)}
-                        />
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`available-${index}`}
-                            checked={variant.available}
-                            onCheckedChange={(checked) => updateVariant(index, "available", checked as boolean)}
-                          />
-                          <Label htmlFor={`available-${index}`} className="text-sm">
-                            Available
-                          </Label>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeVariant(index)}
-                          className="text-destructive"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-
               {/* Product Available Checkbox */}
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -448,8 +345,8 @@ function AddProductContent() {
                 <Button type="button" variant="outline">
                   Save as Draft
                 </Button>
-                <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
-                  {isSubmitting ? "Adding..." : "Submit"}
+                <Button type="submit" disabled={isLoading} className="min-w-[120px]">
+                  {isLoading ? "Adding..." : "Submit"}
                 </Button>
               </div>
             </form>
