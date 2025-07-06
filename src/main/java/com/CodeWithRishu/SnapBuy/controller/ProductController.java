@@ -2,8 +2,8 @@ package com.CodeWithRishu.SnapBuy.controller;
 
 import com.CodeWithRishu.SnapBuy.Entity.Product;
 import com.CodeWithRishu.SnapBuy.service.ProductService;
-import com.stripe.net.StripeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,8 +14,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v2/")
-@CrossOrigin
+@RequestMapping("/api/v2/products")
 public class ProductController {
 
     private final ProductService productService;
@@ -25,52 +24,61 @@ public class ProductController {
         this.productService = productService;
     }
 
-    @GetMapping("/products")
+    @GetMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<List<Product>> getProducts() {
+    public ResponseEntity<List<Product>> getAllProducts() {
         return new ResponseEntity<>(productService.getAllProduct(), HttpStatus.OK);
     }
 
-    @GetMapping("/product/{id}")
-    @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<Product> getProductById(@PathVariable int id) {
-        return new ResponseEntity<>(productService.getProductByIdOrThrow(id), HttpStatus.OK);
-    }
-
-    @GetMapping("/product/{productId}/image")
+    @GetMapping("/pagination&sorting")
     @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_USER')")
-    public ResponseEntity<byte[]> getProductImage(@PathVariable int productId) {
-        Product product = productService.getProductByIdOrThrow(productId);
-        return new ResponseEntity<>(product.getImageData(), HttpStatus.OK);
+    public ResponseEntity<Page<Product>> getProductsByPaginationAndSorting(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDirection) {
+        Page<Product> productPage = productService.getProductsByPaginationAndSorting(page, size, sortBy, sortDirection);
+
+        return ResponseEntity.ok(productPage);
     }
 
-    @PostMapping("/product")
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_USER')")
+    public ResponseEntity<Product> getProductById(@PathVariable int id) {
+        Product product = productService.getProductByIdOrThrow(id);
+        return ResponseEntity.ok(product);
+    }
+
+    @GetMapping("/{id}/image")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_USER')")
+    public ResponseEntity<byte[]> getProductImage(@PathVariable int id) {
+        Product product = productService.getProductByIdOrThrow(id);
+        return ResponseEntity.ok(product.getImageData());
+    }
+
+    @PostMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<Product> addProduct(@RequestPart("product") Product product, @RequestPart("imageFile") List<MultipartFile> imageFile) throws IOException {
-        Product savedProduct = productService.addProduct(product, imageFile);
+    public ResponseEntity<Product> addProduct(
+            @RequestPart("product") Product product,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) throws IOException {
+        Product savedProduct = productService.addProduct(product, (MultipartFile) imageFile);
         return new ResponseEntity<>(savedProduct, HttpStatus.CREATED);
     }
 
-    @PutMapping("/product/{id}")
+    @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<String> updateProduct(@PathVariable int id,
-                                                @RequestPart("product") Product product,
-                                                @RequestPart("imageFile") List<MultipartFile> imageFile) throws IOException {
-        productService.updateProductOrThrow(id, product, imageFile);
-        return new ResponseEntity<>("Product Updated Successfully", HttpStatus.OK);
+    public ResponseEntity<Product> updateProduct(
+            @PathVariable int id,
+            @RequestPart("product") Product product,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) throws IOException {
+        Product updatedProduct = productService.updateProductOrThrow(id, product, imageFile);
+        return ResponseEntity.ok(updatedProduct);
     }
 
-    @DeleteMapping("/product/{id}")
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<String> deleteProduct(@PathVariable int id) {
+    public ResponseEntity<Void> deleteProduct(@PathVariable int id) {
         productService.deleteProductOrThrow(id);
-        return new ResponseEntity<>("Product Deleted Successfully", HttpStatus.OK);
-    }
-
-    @GetMapping("/products/search")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_USER')")
-    public ResponseEntity<List<Product>> searchProducts(@RequestParam String keyword) {
-        List<Product> products = productService.searchProducts(keyword);
-        return new ResponseEntity<>(products, HttpStatus.OK);
+        return ResponseEntity.noContent().build();
     }
 }

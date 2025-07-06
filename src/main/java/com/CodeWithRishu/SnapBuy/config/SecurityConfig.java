@@ -1,7 +1,6 @@
 package com.CodeWithRishu.SnapBuy.config;
 
 import com.CodeWithRishu.SnapBuy.filter.JwtAuthFilter;
-import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,12 +21,29 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
+    };
+
+    private static final String[] AUTH_ENDPOINTS = {
+            "/api/v1/auth/signUp",
+            "/api/v1/auth/signIn",
+            "/api/v1/auth/refreshToken"
+    };
+
+    private static final String[] OTT_ENDPOINTS = {
+            "/api/v1/ott/sent",
+            "/api/v1/ott/login"
+    };
+
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthFilter authFilter;
 
     @Autowired
-    public SecurityConfig(JwtAuthFilter authFilter,
-                          CustomUserDetailsService customUserDetailsService) {
+    public SecurityConfig(JwtAuthFilter authFilter, CustomUserDetailsService customUserDetailsService) {
         this.customUserDetailsService = customUserDetailsService;
         this.authFilter = authFilter;
     }
@@ -36,12 +52,11 @@ public class SecurityConfig {
     @Order(1)
     public SecurityFilterChain ottSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/api/v1/ott/**")
+                .securityMatcher("/api/v1/ott/**") // Apply this chain ONLY to OTT paths
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/ott/sent", "/api/v1/ott/login", "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html").permitAll()
+                        .requestMatchers(OTT_ENDPOINTS).permitAll()
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();
@@ -49,15 +64,12 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   UserRepository userRepository) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/signUp", "/api/v1/auth/signIn", "/api/v1/auth/refreshToken", "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html").permitAll()
-                        .requestMatchers("/api/v2/**").authenticated()
+                        .requestMatchers(AUTH_ENDPOINTS).permitAll()
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -85,5 +97,4 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
 }

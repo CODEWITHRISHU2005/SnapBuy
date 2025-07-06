@@ -4,18 +4,17 @@ import com.CodeWithRishu.SnapBuy.Entity.OttToken;
 import com.CodeWithRishu.SnapBuy.Entity.User;
 import com.CodeWithRishu.SnapBuy.repository.OttTokenRepository;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.IOException;
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -26,36 +25,50 @@ public class OttService {
     private final OttTokenRepository ottTokenRepository;
     private final UserRepository userRepository;
 
-    @Autowired
-    public OttService(JavaMailSender javaMailSender, UserRepository userRepository, OttTokenRepository ottTokenRepository) {
+    private final String appBaseUrl;
+    private final long tokenExpirySeconds;
+    private final String mailFrom;
+
+    public OttService(
+            JavaMailSender javaMailSender,
+            UserRepository userRepository,
+            OttTokenRepository ottTokenRepository,
+            @Value("${app.base-url}") String appBaseUrl,
+            @Value("${ott.token.expiry-seconds}") long tokenExpirySeconds,
+            @Value("${spring.mail.from}") String mailFrom
+    ) {
         this.ottTokenRepository = ottTokenRepository;
         this.userRepository = userRepository;
         this.javaMailSender = javaMailSender;
+        this.appBaseUrl = appBaseUrl;
+        this.tokenExpirySeconds = tokenExpirySeconds;
+        this.mailFrom = mailFrom;
     }
 
-    public void generateMagicLink(String username, HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    @Transactional
+    public void generateMagicLink(String username) {
         log.info("Generating magic link for user: {}", username);
         User user = userRepository.findByName(username)
                 .orElseThrow(() -> {
                     log.warn("User not found: {}", username);
                     return new IllegalArgumentException("User not found: " + username);
                 });
+
         String tokenValue = UUID.randomUUID().toString();
 
-        // Delete old token first
         ottTokenRepository.deleteByUser(user);
         log.debug("Deleted old OTT token for user: {}", user.getName());
 
         OttToken ottToken = OttToken.builder()
                 .token(tokenValue)
-                .expiryDate(java.time.Instant.now().plusSeconds(300)) // 5 min expiry
+                .expiryDate(Instant.now().plusSeconds(tokenExpirySeconds))
                 .user(user)
                 .build();
 
-        log.info("Creating new OTT token for user: {}", user.getName());
         ottTokenRepository.save(ottToken);
+        log.info("Created new OTT token for user: {}", user.getName());
 
-        String magicLink = UriComponentsBuilder.fromHttpUrl(getBaseUrl(request))
+        String magicLink = UriComponentsBuilder.fromHttpUrl(appBaseUrl)
                 .path("/api/v1/ott/login")
                 .queryParam("token", tokenValue)
                 .toUriString();
@@ -67,41 +80,32 @@ public class OttService {
 
     private void sendOttNotification(User user, String magicLink) {
         try {
-            if (user.getEmail() == null || user.getEmail().isBlank()) {
-                log.warn("Recipient email is null or empty for user: {}", user.getName());
-                throw new IllegalArgumentException("Recipient email is null or empty for user: " + user.getName());
-            }
-
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("SnapBuy <rg2822046@gmail.com>");
-            message.setTo(user.getEmail());
-            message.setSubject("One Time Token - Magic Link");
-
-            String messageBody = String.format("""
-                     Hello %s,
-                    
-                     Use the following link to sign in to the application:
-                    
-                     %s
-                    
-                     This link is valid for a limited time. If you did not request this, please ignore this email.
-                    """, user.getName(), magicLink);
-
-            message.setText(messageBody);
+            SimpleMailMessage message = getSimpleMailMessage(user, magicLink);
             javaMailSender.send(message);
-            log.info("Magic link email sent to {}", user.getEmail());
-        } catch (Exception e) {
+            log.info("Magic link email sent successfully to {}", user.getEmail());
+        } catch (MailException e) {
             log.error("Failed to send magic link email to {}: {}", user.getEmail(), e.getMessage(), e);
+            throw new RuntimeException("Failed to send notification email.", e);
         }
     }
 
-    private String getBaseUrl(HttpServletRequest request) {
-        String scheme = request.getScheme();
-        String serverName = request.getServerName();
-        int serverPort = request.getServerPort();
-        String contextPath = request.getContextPath();
-        String baseUrl = scheme + "://" + serverName + (serverPort == 80 || serverPort == 443 ? "" : ":" + serverPort) + contextPath;
-        log.debug("Base URL constructed: {}", baseUrl);
-        return baseUrl;
+    private SimpleMailMessage getSimpleMailMessage(User user, String magicLink) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(mailFrom);
+        message.setTo(user.getEmail());
+        message.setSubject("Your SnapBuy Sign-In Link");
+
+        String messageBody = String.format("""
+                 Hello %s,
+                
+                 Click the link below to sign in to your SnapBuy account:
+                
+                 %s
+                
+                 This link is valid for %d minutes. If you did not request this, please ignore this email.
+                """, user.getName(), magicLink, tokenExpirySeconds / 60);
+
+        message.setText(messageBody);
+        return message;
     }
 }
