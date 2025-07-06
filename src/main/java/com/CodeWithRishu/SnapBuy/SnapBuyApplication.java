@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class SnapBuyApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SnapBuyApplication.class, args);
-	}
-	
+    public static void main(String[] args) {
+        SpringApplication.run(SnapBuyApplication.class, args);
+    }
+
 }

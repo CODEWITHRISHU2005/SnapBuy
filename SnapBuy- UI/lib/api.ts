@@ -146,6 +146,7 @@ class ApiClient {
         success: true,
         data: this.convertProduct(response.data),
       }
+<<<<<<< Updated upstream
     }
     
     return response
@@ -231,6 +232,93 @@ class ApiClient {
     }
   }
 
+=======
+    }
+    
+    return response
+  }
+
+  async getProductImage(id: number) {
+    try {
+      const url = `${this.baseURL}/product/${id}/image`
+      const response = await fetch(url)
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        return URL.createObjectURL(blob)
+      }
+      
+      return "/placeholder.svg?height=400&width=400"
+    } catch (error) {
+      console.error("Failed to fetch product image:", error)
+      return "/placeholder.svg?height=400&width=400"
+    }
+  }
+
+  async createProduct(productData: FormData) {
+    return this.request("/product", {
+      method: "POST",
+      headers: {
+        ...this.getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: productData,
+    })
+  }
+
+  async updateProduct(id: number, productData: FormData) {
+    return this.request(`/product/${id}`, {
+      method: "PUT",
+      headers: {
+        ...this.getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: productData,
+    })
+  }
+
+  async deleteProduct(id: number) {
+    return this.request(`/product/${id}`, {
+      method: "DELETE",
+    })
+  }
+
+  async searchProducts(keyword: string) {
+    const response = await this.request<BackendProduct[]>(`/products/search?keyword=${encodeURIComponent(keyword)}`)
+    
+    if (response.success && response.data) {
+      const convertedProducts = response.data.map(product => this.convertProduct(product))
+      return {
+        success: true,
+        data: convertedProducts,
+      }
+    }
+    
+    return response
+  }
+
+  // Placeholder methods for features not yet implemented in backend
+  async getPromotionalBanners() {
+    // Return mock data until backend implements this
+    return {
+      success: true,
+      data: {
+        banners: []
+      }
+    }
+  }
+
+  async getFeaturedSections() {
+    // Return mock data until backend implements this
+    return {
+      success: true,
+      data: {
+        sections: []
+      }
+    }
+  }
+
+>>>>>>> Stashed changes
   // Cart API methods (placeholder - implement when backend is ready)
   async getCart() {
     return { success: true, data: { items: [] } }
@@ -266,7 +354,73 @@ class ApiClient {
   }
 
   async clearWishlist() {
+<<<<<<< Updated upstream
     return { success: true, data: { message: "Cleared wishlist locally" } }
+=======
+<<<<<<< HEAD
+    return this.request("/wishlist/clear", {
+      method: "DELETE",
+    })
+  }
+
+  // User API methods
+  async getProfile() {
+    return this.request("/user/profile")
+  }
+
+  async updateProfile(profileData: any) {
+    return this.request("/user/profile", {
+      method: "PUT",
+      body: JSON.stringify(profileData),
+    })
+  }
+
+  // Order API methods
+  async getOrders(params?: Record<string, string>) {
+    const queryString = params ? `?${new URLSearchParams(params)}` : ""
+    return this.request(`/orders${queryString}`)
+  }
+
+  async getOrder(id: string) {
+    return this.request(`/orders/${id}`)
+  }
+
+  async createOrder(orderData: any) {
+    return this.request("/orders", {
+      method: "POST",
+      body: JSON.stringify(orderData),
+    })
+  }
+
+  // Reviews API methods
+  async getProductReviews(productId: number) {
+    return this.request(`/products/${productId}/reviews`)
+  }
+
+  async addReview(productId: number, reviewData: any) {
+    return this.request(`/products/${productId}/reviews`, {
+      method: "POST",
+      body: JSON.stringify(reviewData),
+    })
+  }
+
+  // Upload API methods
+  async uploadImage(file: File): Promise<ApiResponse<{ url: string }>> {
+    const formData = new FormData()
+    formData.append("image", file)
+
+    return this.request<{ url: string }>("/upload/image", {
+      method: "POST",
+      headers: {
+        ...this.getAuthHeaders(),
+        // Don't set Content-Type for FormData
+      },
+      body: formData,
+    })
+=======
+    return { success: true, data: { message: "Cleared wishlist locally" } }
+>>>>>>> ba0b1285054bcac7162cad04f12757b4bb3e206f
+>>>>>>> Stashed changes
   }
 }
 

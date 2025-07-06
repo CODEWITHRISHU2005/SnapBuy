@@ -16,8 +16,17 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import ProtectedRoute from "@/components/protected-route"
 import Image from "next/image"
+<<<<<<< Updated upstream
 import { useProducts } from "@/hooks/use-products"
 import { useRouter } from "next/navigation"
+=======
+<<<<<<< HEAD
+import { apiClient } from "@/lib/api"
+=======
+import { useProducts } from "@/hooks/use-products"
+import { useRouter } from "next/navigation"
+>>>>>>> ba0b1285054bcac7162cad04f12757b4bb3e206f
+>>>>>>> Stashed changes
 
 interface ProductFormData {
   name: string
@@ -118,6 +127,7 @@ function AddProductContent() {
     }
 
     try {
+<<<<<<< Updated upstream
       // Create FormData for backend submission
       const productFormData = new FormData()
       
@@ -148,6 +158,65 @@ function AddProductContent() {
 
       const success = await createProduct(productFormData)
 
+=======
+<<<<<<< HEAD
+      let imageUrl: string | undefined
+
+      // 1. If an image is selected, upload it first
+      if (formData.image) {
+        const uploadResponse = await apiClient.uploadImage(formData.image)
+        if (uploadResponse.success && uploadResponse.data?.url) {
+          imageUrl = uploadResponse.data.url
+        } else {
+          throw new Error(uploadResponse.error || "Image upload failed")
+        }
+      }
+
+      // 2. Prepare product data for submission
+      const { image, ...productDetails } = formData
+      const productData = {
+        ...productDetails,
+        imageUrl,
+      }
+
+      // 3. Create the product
+      const createResponse = await apiClient.createProduct(productData)
+
+      if (!createResponse.success) {
+        throw new Error(createResponse.error || "Failed to add product.")
+=======
+      // Create FormData for backend submission
+      const productFormData = new FormData()
+      
+      // Create product object
+      const productData = {
+        name: formData.name,
+        brand: formData.brand,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        category: formData.category,
+        stockQuantity: parseInt(formData.stockQuantity),
+        releaseDate: formData.releaseDate,
+        productAvailable: formData.productAvailable,
+      }
+
+      // Add product data as JSON string
+      productFormData.append("product", JSON.stringify(productData))
+      
+      // Add image file
+      if (formData.image) {
+        productFormData.append("imageFile", formData.image)
+      } else {
+        // Create a placeholder file if no image is provided
+        const placeholderBlob = new Blob(['placeholder'], { type: 'text/plain' })
+        const placeholderFile = new File([placeholderBlob], 'placeholder.txt', { type: 'text/plain' })
+        productFormData.append("imageFile", placeholderFile)
+>>>>>>> ba0b1285054bcac7162cad04f12757b4bb3e206f
+      }
+
+      const success = await createProduct(productFormData)
+
+>>>>>>> Stashed changes
       if (success) {
         toast({
           title: "Product Added Successfully!",
@@ -178,10 +247,18 @@ function AddProductContent() {
         })
       }
     } catch (error) {
+<<<<<<< Updated upstream
       console.error("Error adding product:", error)
+=======
+<<<<<<< HEAD
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred."
+=======
+      console.error("Error adding product:", error)
+>>>>>>> ba0b1285054bcac7162cad04f12757b4bb3e206f
+>>>>>>> Stashed changes
       toast({
         title: "Error",
-        description: "Failed to add product. Please try again.",
+        description: `Failed to add product. ${errorMessage}`,
         variant: "destructive",
       })
     }

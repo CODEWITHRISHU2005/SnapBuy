@@ -1,7 +1,9 @@
 package com.CodeWithRishu.SnapBuy.service;
 
-import com.CodeWithRishu.SnapBuy.model.Product;
+import com.CodeWithRishu.SnapBuy.Entity.Product;
 import com.CodeWithRishu.SnapBuy.repository.ProductRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,24 +14,35 @@ import java.util.List;
 @Service
 public class ProductService {
 
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
+    private final ProductRepository productRepository;
+
     @Autowired
-    private ProductRepository productRepository;
+    public ProductService(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
 
     public List<Product> getAllProduct() {
         List<Product> products = productRepository.findAll();
-        System.out.println("Fetched products: " + products);
+        log.info("Fetched {} products", products.size());
         return products;
     }
 
-    public Product getProductsById(int id) {
-        return productRepository.findById(id).orElse(null);
+    public Product getProductByIdOrThrow(int id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Product not found with id: {}", id);
+                    return new IllegalArgumentException("Product not found with id: " + id);
+                });
     }
 
     public Product addProduct(Product product, List<MultipartFile> image) throws IOException {
+        log.info("Adding new product: {}", product.getName());
         MultipartFile imageFile = image.getFirst();
         if (!image.isEmpty()) {
             product.setImageData(imageFile.getBytes());
             product.setImageType(imageFile.getContentType());
+            log.debug("Set image data for product: {}", product.getName());
         }
         product.setProductAvailable(true);
         product.setStockQuantity(100);
@@ -38,39 +51,54 @@ public class ProductService {
         product.setImageType(imageFile.getContentType());
         product.setProductAvailable(true);
 
-        return productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+        log.info("Product '{}' added with id {}", savedProduct.getName(), savedProduct.getId());
+        return savedProduct;
     }
 
-    public Product updateProduct(int id, Product product, List<MultipartFile> imageFile) throws IOException {
-        Product existingProduct = productRepository.findById(id).orElse(null);
-        if (existingProduct != null) {
-            existingProduct.setName(product.getName());
-            existingProduct.setDescription(product.getDescription());
-            existingProduct.setBrand(product.getBrand());
-            existingProduct.setPrice(product.getPrice());
-            existingProduct.setCategory(product.getCategory());
-            existingProduct.setReleaseDate(product.getReleaseDate());
-            existingProduct.setStockQuantity(product.getStockQuantity());
-            existingProduct.setProductAvailable(product.isProductAvailable());
+    public Product updateProductOrThrow(int id, Product product, List<MultipartFile> imageFile) throws IOException {
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Product not found with id: {}", id);
+                    return new IllegalArgumentException("Product not found with id: " + id);
+                });
 
-            if (imageFile != null && !imageFile.isEmpty()) {
-                MultipartFile imageFiles = imageFile.getFirst();
-                existingProduct.setImageData(imageFiles.getBytes());
-                existingProduct.setImageType(imageFiles.getContentType());
-                existingProduct.setImageName(imageFiles.getOriginalFilename());
-            }
+        log.info("Updating product with id: {}", id);
+        existingProduct.setName(product.getName());
+        existingProduct.setDescription(product.getDescription());
+        existingProduct.setBrand(product.getBrand());
+        existingProduct.setPrice(product.getPrice());
+        existingProduct.setCategory(product.getCategory());
+        existingProduct.setReleaseDate(product.getReleaseDate());
+        existingProduct.setStockQuantity(product.getStockQuantity());
+        existingProduct.setProductAvailable(product.isProductAvailable());
 
-            return productRepository.save(existingProduct);
+        if (imageFile != null && !imageFile.isEmpty()) {
+            MultipartFile imageFiles = imageFile.getFirst();
+            existingProduct.setImageData(imageFiles.getBytes());
+            existingProduct.setImageType(imageFiles.getContentType());
+            existingProduct.setImageName(imageFiles.getOriginalFilename());
+            log.debug("Updated image for product id: {}", id);
         }
 
-        return null;
+        Product updatedProduct = productRepository.save(existingProduct);
+        log.info("Product with id {} updated successfully", id);
+        return updatedProduct;
     }
 
-    public void deleteProduct(int id) {
-        productRepository.deleteById(id);
+    public void deleteProductOrThrow(int id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Product not found with id: {}", id);
+                    return new IllegalArgumentException("Product not found with id: " + id);
+                });
+        productRepository.delete(product);
+        log.info("Product with id {} deleted successfully", id);
     }
 
     public List<Product> searchProducts(String keyword) {
-        return productRepository.searchProducts(keyword);
+        List<Product> products = productRepository.searchProducts(keyword);
+        log.info("Searched products with keyword '{}', found {}", keyword, products.size());
+        return products;
     }
 }

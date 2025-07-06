@@ -1,7 +1,38 @@
 "use client"
 
 import { create } from "zustand"
+<<<<<<< Updated upstream
 import { productApi, type Product } from "@/lib/api"
+=======
+<<<<<<< HEAD
+import { apiClient } from "@/lib/api"
+
+interface Product {
+  id: number
+  name: string
+  brand: string
+  price: number
+  image: string
+  description: string
+  rating: number
+  reviews: number
+  category: string
+  stock: number
+  variants?: Array<{
+    id: number
+    type: string
+    name: string
+    value: string
+    priceModifier?: number
+    available: boolean
+  }>
+  createdAt: string
+  updatedAt: string
+}
+=======
+import { productApi, type Product } from "@/lib/api"
+>>>>>>> ba0b1285054bcac7162cad04f12757b4bb3e206f
+>>>>>>> Stashed changes
 
 interface ProductFilters {
   category?: string
@@ -54,6 +85,7 @@ export const useProducts = create<ProductsStore>((set, get) => ({
     set({ isLoading: true, error: null })
 
     try {
+<<<<<<< Updated upstream
       const { filters } = get()
       
       // Build query parameters
@@ -69,6 +101,46 @@ export const useProducts = create<ProductsStore>((set, get) => ({
         throw new Error(response.error || "Failed to fetch products")
       }
 
+=======
+<<<<<<< HEAD
+      const { filters, sortBy, sortOrder } = get()
+      const params: Record<string, string> = {
+        page: page.toString(),
+        limit: limit.toString(),
+        sortBy,
+        sortOrder,
+      }
+
+      for (const [key, value] of Object.entries(filters)) {
+        if (value !== undefined && value !== "") {
+          params[key] = String(value)
+        }
+      }
+
+      const response = await apiClient.getProducts(params)
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || "Failed to fetch products")
+      }
+
+      const data = response.data as any
+=======
+      const { filters } = get()
+      
+      // Build query parameters
+      const params: Record<string, string> = {}
+      
+      if (filters.category) params.category = filters.category
+      if (filters.brand) params.brand = filters.brand
+      if (filters.search) params.search = filters.search
+
+      const response = await productApi.getAll(params)
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to fetch products")
+      }
+
+>>>>>>> Stashed changes
       const products = response.data || []
       
       // Apply client-side filtering
@@ -102,6 +174,10 @@ export const useProducts = create<ProductsStore>((set, get) => ({
       const startIndex = (page - 1) * limit
       const endIndex = startIndex + limit
       const paginatedProducts = filteredProducts.slice(startIndex, endIndex)
+<<<<<<< Updated upstream
+=======
+>>>>>>> ba0b1285054bcac7162cad04f12757b4bb3e206f
+>>>>>>> Stashed changes
 
       set({
         products: products,
@@ -124,12 +200,31 @@ export const useProducts = create<ProductsStore>((set, get) => ({
     set({ isLoading: true, error: null })
 
     try {
+<<<<<<< Updated upstream
       const response = await productApi.getById(id)
 
       if (!response.success) {
         throw new Error(response.error || "Product not found")
       }
 
+=======
+<<<<<<< HEAD
+      const response = await apiClient.getProduct(id)
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || "Product not found")
+      }
+
+      const product = response.data as Product
+=======
+      const response = await productApi.getById(id)
+
+      if (!response.success) {
+        throw new Error(response.error || "Product not found")
+      }
+
+>>>>>>> ba0b1285054bcac7162cad04f12757b4bb3e206f
+>>>>>>> Stashed changes
       set({ isLoading: false })
       return response.data || null
     } catch (error) {
@@ -148,10 +243,37 @@ export const useProducts = create<ProductsStore>((set, get) => ({
     try {
       const response = await productApi.search(query)
 
+<<<<<<< Updated upstream
       if (!response.success) {
         throw new Error(response.error || "Search failed")
       }
 
+=======
+<<<<<<< HEAD
+      const params: Record<string, string> = {
+        sortBy,
+        sortOrder,
+      }
+
+      for (const [key, value] of Object.entries(filters)) {
+        if (value !== undefined && value !== "") {
+          params[key] = String(value)
+        }
+      }
+
+      const response = await apiClient.getProducts(params)
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || "Search failed")
+      }
+
+      const data = response.data as any
+=======
+      if (!response.success) {
+        throw new Error(response.error || "Search failed")
+      }
+
+>>>>>>> Stashed changes
       const products = response.data || []
       const filters = { ...get().filters, ...additionalFilters, search: query }
 
@@ -165,6 +287,10 @@ export const useProducts = create<ProductsStore>((set, get) => ({
         if (filters.rating && (!product.rating || product.rating < filters.rating)) return false
         return true
       })
+<<<<<<< Updated upstream
+=======
+>>>>>>> ba0b1285054bcac7162cad04f12757b4bb3e206f
+>>>>>>> Stashed changes
 
       set({
         filteredProducts: filteredProducts,
