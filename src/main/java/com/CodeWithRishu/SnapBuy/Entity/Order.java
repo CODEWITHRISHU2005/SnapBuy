@@ -1,6 +1,7 @@
 package com.CodeWithRishu.SnapBuy.Entity;
 
 import com.CodeWithRishu.SnapBuy.dto.OrderStatus;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;
@@ -43,8 +44,10 @@ public class Order {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @JsonManagedReference
     private Address shippingAddress;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items;
+
 }
