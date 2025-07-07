@@ -21,7 +21,7 @@ import java.util.List;
 @Builder
 @DynamicInsert
 @DynamicUpdate
-public class Order {
+public class Order extends AuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

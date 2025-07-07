@@ -22,7 +22,7 @@ import java.util.Date;
 @Setter
 @DynamicInsert
 @DynamicUpdate
-public class Product {
+public class Product extends AuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

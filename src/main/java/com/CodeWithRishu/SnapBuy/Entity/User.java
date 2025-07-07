@@ -18,7 +18,7 @@ import java.util.List;
 @DynamicInsert
 @DynamicUpdate
 @SoftDelete
-public class User {
+public class User extends AuditEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
