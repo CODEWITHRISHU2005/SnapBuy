@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-@Component
+@Service
 public class JwtService {
     @Value("${jwt.secret}")
     private String secret;
@@ -101,7 +101,7 @@ public class JwtService {
 
     public void addUser(User userInfo) {
         log.info("Adding new user: {}", userInfo.getName());
-        if (repository.findByName(userInfo.getName()).isPresent() && repository.findByEmail(userInfo.getEmail()).isPresent()) {
+        if (repository.findByNameOrEmail(userInfo.getName(), userInfo.getEmail()).isPresent()) {
             throw new UserAlreadyExists("User already exists with name: " + userInfo.getName());
         }
         userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));

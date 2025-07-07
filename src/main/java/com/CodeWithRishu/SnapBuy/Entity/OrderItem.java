@@ -4,12 +4,18 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.SoftDelete;
 
 import java.math.BigDecimal;
 
 @Getter
 @Setter
 @Entity
+@DynamicInsert
+@DynamicUpdate
+@SoftDelete
 @Table(name = "order_item")
 public class OrderItem {
 
@@ -19,7 +25,7 @@ public class OrderItem {
 
     @Column(nullable = false)
     @Min(value = 1, message = "Quantity must be greater than or equal to 1")
-    private int stockQuantity;
+    private int quantity;
 
     @Column(nullable = false)
     private String productName;
@@ -35,5 +41,4 @@ public class OrderItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
     private Product product;
-
 }

@@ -5,7 +5,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -15,6 +20,8 @@ import java.util.Date;
 @NoArgsConstructor
 @Getter
 @Setter
+@DynamicInsert
+@DynamicUpdate
 public class Product {
 
     @Id
@@ -51,5 +58,6 @@ public class Product {
     private String imageType;
 
     @Lob
+    @Column(length = 1000000)
     private byte[] imageData;
 }

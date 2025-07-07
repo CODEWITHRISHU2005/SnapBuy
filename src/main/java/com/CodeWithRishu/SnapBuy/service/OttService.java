@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -45,7 +46,7 @@ public class OttService {
         this.mailFrom = mailFrom;
     }
 
-    @Transactional
+    @Transactional(rollbackFor = SQLException.class)
     public void generateMagicLink(String username) {
         log.info("Generating magic link for user: {}", username);
         User user = userRepository.findByName(username)

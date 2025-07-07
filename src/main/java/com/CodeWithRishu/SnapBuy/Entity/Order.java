@@ -1,12 +1,12 @@
 package com.CodeWithRishu.SnapBuy.Entity;
 
-import com.CodeWithRishu.SnapBuy.Entity.Address;
-import com.CodeWithRishu.SnapBuy.Entity.OrderItem;
 import com.CodeWithRishu.SnapBuy.dto.OrderStatus;
-import com.CodeWithRishu.SnapBuy.Entity.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,6 +18,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@DynamicInsert
+@DynamicUpdate
 public class Order {
 
     @Id
@@ -40,7 +42,6 @@ public class Order {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-
 
     private Address shippingAddress;
 
