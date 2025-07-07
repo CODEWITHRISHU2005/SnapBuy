@@ -44,7 +44,6 @@ public class Order extends AuditEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @JsonManagedReference
     private Address shippingAddress;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-@RequiredArgsConstructor
 @AllArgsConstructor
 @NoArgsConstructor
 public abstract class AuditEntity {
@@ -30,14 +29,14 @@ public abstract class AuditEntity {
     private LocalDateTime updatedAt;
 
     @CreatedBy
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by", updatable = false)
     @JsonIgnore
     @ToString.Exclude
     private User createdBy;
 
     @LastModifiedBy
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "updated_by")
     @JsonIgnore
     @ToString.Exclude
