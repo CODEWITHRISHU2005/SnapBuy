@@ -21,6 +21,7 @@ import java.util.List;
 public class User extends AuditEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonIgnore
     private int id;
 
     @Column(name = "user_name", unique = true, nullable = false)
@@ -30,7 +31,6 @@ public class User extends AuditEntity {
     private String email;
 
     @Column(nullable = false)
-    @JsonIgnore
     private String password;
 
     @Column(nullable = false)
@@ -44,5 +44,6 @@ public class User extends AuditEntity {
     private List<Order> orders;
 
     @Version
+    @JsonIgnore
     private Integer version;
 }

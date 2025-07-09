@@ -26,7 +26,7 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
-    @PostMapping("/stripe/initiate")
+
     @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<StripeResponse> initiateStripePayment(@RequestBody StripeRequest stripeRequest) throws StripeException {
         StripeResponse stripeResponse = paymentService.createOrderByStripe(stripeRequest);

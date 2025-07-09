@@ -21,11 +21,13 @@ import java.time.LocalDateTime;
 public abstract class AuditEntity {
 
     @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @Column(updatable = false)
+    @JsonIgnore
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(nullable = false)
+    @Column(updatable = false)
+    @JsonIgnore
     private LocalDateTime updatedAt;
 
     @CreatedBy
