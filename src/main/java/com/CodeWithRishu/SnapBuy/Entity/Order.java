@@ -1,7 +1,6 @@
 package com.CodeWithRishu.SnapBuy.Entity;
 
 import com.CodeWithRishu.SnapBuy.dto.OrderStatus;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;

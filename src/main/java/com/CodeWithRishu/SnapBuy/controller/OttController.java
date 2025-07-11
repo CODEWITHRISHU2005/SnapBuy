@@ -36,7 +36,7 @@ public class OttController {
     }
 
     @PostMapping("/sent")
-    public ResponseEntity<String> sendOtt(@RequestParam String username) throws IOException, ServletException {
+    public ResponseEntity<String> sendOtt(@RequestParam String username) {
         ottService.generateMagicLink(username);
         return ResponseEntity.ok("Magic link sent to your email. Please check your inbox.");
     }
