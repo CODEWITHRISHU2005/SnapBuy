@@ -5,7 +5,7 @@ services:
     ports:
       - "8080:8080"
     networks:
-      s-network:
+      - s-network
     depends_on:
       mysql:
         condition: service_healthy
@@ -19,7 +19,7 @@ services:
     ports:
       - "3307:3306"
     networks:
-      s-network:
+      - s-network
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u", "root", "-pRishabhGupta&2005@"]
       interval: 10s
@@ -29,4 +29,4 @@ services:
 
 networks:
   s-network:
-    driver: bridge111111111111111111
+    driver: bridge
