@@ -5,33 +5,51 @@ env:
     REPOSITORY_URI: 339713037827.dkr.ecr.ap-south-1.amazonaws.com/javatechie-registry
 
 phases:
+
+  # 1) Install Corretto 21 so javac --release 21 works
+  install:
+    commands:
+      - echo "Adding Amazon Corretto repo"
+      - yum install -y yum-utils
+      - yum-config-manager --add-repo https://yum.corretto.aws/corretto.repo
+      - echo "Installing Java 21 (Amazon Corretto)"
+      - yum install -y java-21-amazon-corretto-devel
+      - export JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
+      - export PATH=$JAVA_HOME/bin:$PATH
+      - echo "Java version is now:" && java -version
+
+  # 2) Compile your code
   pre_build:
     commands:
-      - echo "Cleaning and packaging with Maven"
+      - echo "Running mvn clean install"
       - mvn clean install
+
+  # 3) Log into ECR and prepare IMAGE_TAG
+  pre_build:
+    commands:
       - echo "Logging in to Amazon ECR"
       - aws --version
       - aws ecr get-login-password --region ap-south-1 \
         | docker login --username AWS --password-stdin $REPOSITORY_URI
       - export IMAGE_TAG=build-$(echo $CODEBUILD_BUILD_ID | awk -F":" '{print $2}')
 
+  # 4) Build & tag the Docker image
   build:
     commands:
-      - echo "Build started on $(date)"
-      - echo "Building the Docker image"
+      - echo "Building Docker image at $(date)"
       - docker build -t $REPOSITORY_URI:latest .
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
 
+  # 5) Push images and generate imagedefinitions.json
   post_build:
     commands:
-      - echo "Build completed on $(date)"
-      - echo "Pushing the Docker images"
+      - echo "Pushing images at $(date)"
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo "Generating imagedefinitions.json for ECS"
+      - echo "Creating imagedefinitions.json"
       - printf '[{"name":"javatechie-registry","imageUri":"%s"}]' \
         $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
-      - echo "Image definitions file content:"
+      - echo "imagedefinitions.json content:"
       - cat imagedefinitions.json
 
 artifacts:
