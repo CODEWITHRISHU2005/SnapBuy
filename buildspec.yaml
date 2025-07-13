@@ -7,34 +7,35 @@ env:
 phases:
   install:
     commands:
-      - echo "Installing Amazon Corretto 21"
+      - echo Installing Java 21 (Amazon Corretto)
       - yum install -y java-21-amazon-corretto-devel
       - export JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
-      - export PATH=$JAVA_HOME/bin:$PATH
+      - export PATH="$JAVA_HOME/bin:$PATH"
       - java -version
 
   pre_build:
     commands:
-      - echo "Running mvn clean install"
+      - echo Running mvn clean install
       - mvn clean install
-      - echo "Logging in to Amazon ECR"
-      - aws --version
-      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin "${REPOSITORY_URI}"
-      - export IMAGE_TAG="build-$(echo "${CODEBUILD_BUILD_ID}" | cut -d: -f2)"
+      - echo Logging in to Amazon ECR
+      - aws ecr get-login-password --region ap-south-1 \
+        | docker login --username AWS --password-stdin "$REPOSITORY_URI"
+      - export IMAGE_TAG="build-$(echo $CODEBUILD_BUILD_ID | cut -d: -f2)"
 
   build:
     commands:
-      - echo "Building Docker image ${REPOSITORY_URI}:${IMAGE_TAG}"
-      - docker build -t "${REPOSITORY_URI}:latest" .
-      - docker tag "${REPOSITORY_URI}:latest" "${REPOSITORY_URI}:${IMAGE_TAG}"
+      - echo Building Docker image
+      - docker build -t "$REPOSITORY_URI:latest" .
+      - docker tag "$REPOSITORY_URI:latest" "$REPOSITORY_URI:$IMAGE_TAG"
 
   post_build:
     commands:
-      - echo "Pushing Docker images to ECR"
-      - docker push "${REPOSITORY_URI}:latest"
-      - docker push "${REPOSITORY_URI}:${IMAGE_TAG}"
-      - printf '[{"name":"javatechie-registry","imageUri":"%s"}]' "${REPOSITORY_URI}:${IMAGE_TAG}" > imagedefinitions.json
-      - cat imagedefinitions.json
+      - echo Pushing Docker images
+      - docker push "$REPOSITORY_URI:latest"
+      - docker push "$REPOSITORY_URI:$IMAGE_TAG"
+      - echo Creating imagedefinitions.json
+      - printf '[{"name":"javatechie-registry","imageUri":"%s"}]' \
+        "$REPOSITORY_URI:$IMAGE_TAG" > imagedefinitions.json
 
 artifacts:
   files:
