@@ -30,8 +30,8 @@ public class AuditorProvider implements AuditorAware<User> {
         Object principal = authentication.getPrincipal();
         String username;
 
-        if (principal instanceof UserDetails) {
-            username = ((UserDetails) principal).getUsername();
+        if (principal instanceof UserDetails userDetails) {
+            username = userDetails.getUsername();
         } else {
             username = principal.toString();
         }

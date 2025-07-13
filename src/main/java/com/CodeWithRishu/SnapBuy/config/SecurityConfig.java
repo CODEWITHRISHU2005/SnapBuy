@@ -4,7 +4,6 @@ import com.CodeWithRishu.SnapBuy.filter.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -21,20 +20,16 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
     private static final String[] PUBLIC_ENDPOINTS = {
+            // Swagger UI
             "/v3/api-docs/**",
             "/swagger-ui/**",
-            "/swagger-ui.html"
-    };
-
-    private static final String[] AUTH_ENDPOINTS = {
+            "/swagger-ui.html",
+            // Authentication
             "/api/v1/auth/signUp",
             "/api/v1/auth/signIn",
-            "/api/v1/auth/refreshToken"
-    };
-
-    private static final String[] OTT_ENDPOINTS = {
+            "/api/v1/auth/refreshToken",
+            // OTT Endpoints
             "/api/v1/ott/sent",
             "/api/v1/ott/login"
     };
@@ -49,27 +44,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(1)
-    public SecurityFilterChain ottSecurityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .securityMatcher("/api/v1/ott/**") // Apply this chain ONLY to OTT paths
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(OTT_ENDPOINTS).permitAll()
-                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                        .anyRequest().authenticated()
-                );
-        return http.build();
-    }
-
-    @Bean
-    @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(AUTH_ENDPOINTS).permitAll()
+                        // Grant public access to all endpoints in our list
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        // Secure all other requests
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
