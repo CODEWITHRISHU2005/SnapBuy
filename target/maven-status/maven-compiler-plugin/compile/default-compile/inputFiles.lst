@@ -3,6 +3,7 @@ C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\c
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\config\CustomUserDetails.java
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\config\CustomUserDetailsService.java
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\config\RazorpayConfig.java
+C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\config\SecretConfig.java
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\config\SecurityConfig.java
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\config\StripeConfig.java
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\config\SwaggerConfig.java
@@ -10,6 +11,7 @@ C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\c
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\controller\OttController.java
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\controller\PaymentController.java
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\controller\ProductController.java
+C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\dto\AWSSecret.java
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\dto\OrderStatus.java
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\dto\request\AuthRequest.java
 C:\Users\rg282\OneDrive\Documents\GitHub\Code_With_Rishu\SnapBuy\src\main\java\com\CodeWithRishu\SnapBuy\dto\request\OrderItemDto.java

@@ -1,48 +1,48 @@
 package com.CodeWithRishu.SnapBuy.config;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.secretsmanager.AWSSecretsManager;
-import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder;
-import com.amazonaws.services.secretsmanager.model.*;
+import com.CodeWithRishu.SnapBuy.dto.AWSSecret;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
+import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 
 import javax.sql.DataSource;
 
 @Configuration
+@Profile("!local")
 public class SecretConfig {
 
-    @Value("${cloud.aws.credentials.access-key}")
-    private String accessKey;
-    @Value("${cloud.aws.credentials.secret-key}")
-    private String secretkey;
-
-    private Gson gson = new Gson();
-
     @Bean
-    public DataSource dataSource() {
-        AWSSecret secrets = getSecret();
-        return DataSourceBuilder
-                .create()
-                .url("jdbc:" + secrets.getEngine() + "://" + secrets.getHost() + ":" + secrets.getPort() + "/SnapBuy")
-                .username(secrets.getUsername())
-                .password(secrets.getPassword())
+    public Gson gson() {
+        return new Gson();
+    }
+
+    /**
+     * Creates a singleton bean for the AWS Secrets Manager client.
+     * This is more efficient than creating a new client on every call.
+     * It relies on the DefaultAWSCredentialsProviderChain to find credentials
+     * (e.g., from environment variables, EC2 instance profile), which is a best practice.
+     */
+    @Bean
+    public SecretsManagerClient secretsManagerClient(@Value("${cloud.aws.region.static}") String region) {
+        return SecretsManagerClient.builder()
+                .region(Region.of(region))
                 .build();
     }
 
-    public static AWSSecret getSecret() {
-
-        String secretName = "SnapBuy-Secret-Credential";
-        Region region = Region.of("ap-south-1");
-
-        SecretsManagerClient client = SecretsManagerClient.builder()
-                .region(region)
-                .build();
-
+    @Bean
+    public AWSSecret awsSecret(
+            SecretsManagerClient secretsManagerClient,
+            Gson gson,
+            @Value("${aws.secret.name}") String secretName
+    ) {
         GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder()
                 .secretId(secretName)
                 .build();
@@ -50,15 +50,25 @@ public class SecretConfig {
         GetSecretValueResponse getSecretValueResponse;
 
         try {
-            getSecretValueResponse = client.getSecretValue(getSecretValueRequest);
-        } catch (Exception e) {
-            throw e;
+            getSecretValueResponse = secretsManagerClient.getSecretValue(getSecretValueRequest);
+        } catch (SecretsManagerException e) {
+            throw new IllegalStateException("Error retrieving secret '" + secretName + "' from AWS Secrets Manager", e);
         }
 
-        if (getSecretValueResult.getSecretString() != null) {
-            secret = getSecretValueResult.getSecretString();
-            return gson.fromJson(secret, AWSSecret.class);
+        if (getSecretValueResponse == null || getSecretValueResponse.secretString() == null) {
+            throw new IllegalStateException("Secret value is null for secret: " + secretName);
         }
-        return null;
+
+        return gson.fromJson(getSecretValueResponse.secretString(), AWSSecret.class);
+    }
+
+    @Bean
+    public DataSource dataSource(AWSSecret secrets) {
+        return DataSourceBuilder
+                .create()
+                .url("jdbc:" + secrets.getEngine() + "://" + secrets.getHost() + ":" + secrets.getPort() + "/SnapBuy")
+                .username(secrets.getUsername())
+                .password(secrets.getPassword())
+                .build();
     }
 }

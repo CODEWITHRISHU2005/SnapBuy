@@ -6,3 +6,5 @@ com\CodeWithRishu\SnapBuy\config\StripeConfig.class
 com\CodeWithRishu\SnapBuy\config\CustomUserDetailsService.class
 com\CodeWithRishu\SnapBuy\config\SecurityConfig.class
 com\CodeWithRishu\SnapBuy\config\RazorpayConfig.class
+com\CodeWithRishu\SnapBuy\dto\AWSSecret.class
+com\CodeWithRishu\SnapBuy\config\SecretConfig.class
