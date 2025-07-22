@@ -7,13 +7,11 @@ import com.CodeWithRishu.SnapBuy.dto.response.StripeResponse;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
-import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
+import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -21,9 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@Slf4j
 public class PaymentService {
-
-    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     private final String stripeSecretKey;
     private final String razorpayKeyId;
@@ -31,7 +28,6 @@ public class PaymentService {
     private final String stripeSuccessUrl;
     private final String stripeCancelUrl;
 
-    // Using constructor injection is a best practice
     public PaymentService(
             @Value("${stripe.secret.key}") String stripeSecretKey,
             @Value("${razorpay.key.id}") String razorpayKeyId,
@@ -46,7 +42,7 @@ public class PaymentService {
     }
 
     public StripeResponse createOrderByStripe(StripeRequest stripeRequest) throws StripeException {
-        Stripe.apiKey = stripeSecretKey;
+        log.info("Creating Stripe session with amount: {} and currency: {}", stripeRequest.getAmount(), stripeRequest.getCurrency());
 
         SessionCreateParams.LineItem.PriceData.ProductData productData =
                 SessionCreateParams.LineItem.PriceData.ProductData.builder()

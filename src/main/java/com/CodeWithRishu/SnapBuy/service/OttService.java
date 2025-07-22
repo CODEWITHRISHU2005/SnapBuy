@@ -4,6 +4,7 @@ import com.CodeWithRishu.SnapBuy.Entity.OttToken;
 import com.CodeWithRishu.SnapBuy.Entity.User;
 import com.CodeWithRishu.SnapBuy.repository.OttTokenRepository;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,9 +20,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class OttService {
 
-    private static final Logger log = LoggerFactory.getLogger(OttService.class);
     private final JavaMailSender javaMailSender;
     private final OttTokenRepository ottTokenRepository;
     private final UserRepository userRepository;
