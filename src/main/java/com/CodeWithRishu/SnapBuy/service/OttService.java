@@ -2,11 +2,10 @@ package com.CodeWithRishu.SnapBuy.service;
 
 import com.CodeWithRishu.SnapBuy.Entity.OttToken;
 import com.CodeWithRishu.SnapBuy.Entity.User;
+import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
 import com.CodeWithRishu.SnapBuy.repository.OttTokenRepository;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -26,25 +25,28 @@ public class OttService {
     private final JavaMailSender javaMailSender;
     private final OttTokenRepository ottTokenRepository;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
-    private final String appBaseUrl;
-    private final long tokenExpirySeconds;
-    private final String mailFrom;
+    @Value("${app.base-url}")
+    private String appBaseUrl;
+    @Value("${mail.from}")
+    private String mailFrom;
+    @Value("${ott.token.expiry.seconds}")
+    private long tokenExpirySeconds;
 
     public OttService(
             JavaMailSender javaMailSender,
             UserRepository userRepository,
             OttTokenRepository ottTokenRepository,
-            @Value("${app.base-url}") String appBaseUrl,
-            @Value("${ott.token.expiry-seconds}") long tokenExpirySeconds,
-            @Value("${spring.mail.from}") String mailFrom
+            JwtService jwtService,
+            RefreshTokenService refreshTokenService
     ) {
         this.ottTokenRepository = ottTokenRepository;
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
         this.javaMailSender = javaMailSender;
-        this.appBaseUrl = appBaseUrl;
-        this.tokenExpirySeconds = tokenExpirySeconds;
-        this.mailFrom = mailFrom;
     }
 
     @Transactional(rollbackFor = SQLException.class)
@@ -109,5 +111,30 @@ public class OttService {
 
         message.setText(messageBody);
         return message;
+    }
+
+    public JwtResponse loginWithOttToken(String token) {
+        log.info("Logging in with OTT token: {}", token);
+        OttToken ottToken = ottTokenRepository.findByToken(token)
+                .orElseThrow(() -> {
+                    log.warn("Invalid or expired OTT token: {}", token);
+                    return new IllegalArgumentException("Invalid or expired token, please request a new one.");
+                });
+
+        if (ottToken.getExpiryDate().isBefore(Instant.now())) {
+            ottTokenRepository.deleteByToken(token);
+            log.warn("OTT token expired: {}", token);
+            throw new IllegalArgumentException("Token expired, please request a new one.");
+        }
+
+        String userName = ottToken.getUser().getName();
+        String jwt = jwtService.generateToken(userName);
+        log.debug("Generated JWT for user: {}", userName);
+        log.info("Generated JWT for user: {}", userName);
+
+        return JwtResponse.builder()
+                .accessToken(jwt)
+                .refreshToken(refreshTokenService.createRefreshToken(userName).getToken())
+                .build();
     }
 }

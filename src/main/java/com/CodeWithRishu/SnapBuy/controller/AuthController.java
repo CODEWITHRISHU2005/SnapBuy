@@ -3,8 +3,8 @@ package com.CodeWithRishu.SnapBuy.controller;
 import com.CodeWithRishu.SnapBuy.Entity.RefreshToken;
 import com.CodeWithRishu.SnapBuy.Entity.User;
 import com.CodeWithRishu.SnapBuy.dto.request.AuthRequest;
-import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
 import com.CodeWithRishu.SnapBuy.dto.request.RefreshTokenRequest;
+import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
 import com.CodeWithRishu.SnapBuy.service.JwtService;
 import com.CodeWithRishu.SnapBuy.service.RefreshTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +42,7 @@ public class AuthController {
     }
 
     @PostMapping("/refreshToken")
-    public JwtResponse refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+    public JwtResponse getRefreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
         return refreshTokenService.findByToken(refreshTokenRequest.getToken())
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUserInfo)
@@ -57,7 +57,7 @@ public class AuthController {
     }
 
     @PostMapping("/signUp")
-    public JwtResponse register(@RequestBody User userInfo) {
+    public JwtResponse registerAndGetAccessAndRefreshToken(@RequestBody User userInfo) {
         jwtService.addUser(userInfo);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userInfo.getName());
 
@@ -65,5 +65,4 @@ public class AuthController {
                 .accessToken(jwtService.generateToken(userInfo.getName()))
                 .refreshToken(refreshToken.getToken()).build();
     }
-
 }
