@@ -1,66 +1,76 @@
 package com.CodeWithRishu.SnapBuy.service;
 
 import com.CodeWithRishu.SnapBuy.Entity.Order;
-import com.CodeWithRishu.SnapBuy.Entity.OrderItem;
-import com.CodeWithRishu.SnapBuy.Entity.Product;
-import com.CodeWithRishu.SnapBuy.Entity.User;
+import com.CodeWithRishu.SnapBuy.dto.request.StripeRequest;
 import com.CodeWithRishu.SnapBuy.repository.OrderRepository;
-import com.CodeWithRishu.SnapBuy.repository.ProductRepository;
-import com.CodeWithRishu.SnapBuy.dto.OrderStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @Slf4j
 public class OrderService {
+    /*Validate the user’s cart and selected items.
+    Confirm product stock availability.
+    Initiate payment (via integrated payment provider).
+    On success, create an order and persist it.
+    Deduct inventory from stock.
+    Send an email asynchronously to the user confirming the order*/
+
     private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
     private final CartService cartService;
+    private final ProductService productService;
+    private final PaymentService paymentService;
+    private final EmailService emailService;
 
     @Autowired
-    public OrderService(OrderRepository orderRepository, ProductRepository productRepository, CartService cartService) {
-        this.orderRepository = orderRepository;
-        this.productRepository = productRepository;
+    public OrderService(
+            OrderRepository orderRepository,
+            CartService cartService,
+            ProductService productService,
+            PaymentService paymentService,
+            EmailService emailService) {
+        this.emailService = emailService;
+        this.productService = productService;
+        this.paymentService = paymentService;
         this.cartService = cartService;
+        this.orderRepository = orderRepository;
     }
 
-    @Transactional
-    public Order placeOrder(User user, String paymentMethod) {
-        log.info("Placing order for user: {}", user.getEmail());
-        Cart cart = cartService.getCartByUser(user);
-        if (cart == null || cart.getItems().isEmpty()) {
-            log.warn("Attempted to place order with empty cart for user: {}", user.getEmail());
-            throw new IllegalArgumentException("Cannot place an order with an empty cart.");
-        }
+    public void placeOrder(int userId) {
+        Cart cart = cartService.getCartByUserId(userId);
 
+        // 1. Check stock availability
+        productService.checkStock(cart.getItems());
+
+        // 2. Process payment
+        paymentService.createOrderByStripe(
+                StripeRequest.builder()
+                        .setAmount(cart.getTotalAmount())
+                        .setCurrency("usd")
+                        .setDescription("Order for user " + userId)
+                        .build()
+        );
+
+        // 3. Create order and persist it
         Order order = new Order();
-        order.setUser(user);
-        order.setPlacedAt(LocalDateTime.now());
-        order.setPaymentMethod(paymentMethod);
-        order.setStatus(OrderStatus.PENDING);
-        order.setShippingAddress(user.getAddress());
+        order.setUserId(userId);
+        order.setOrderItems(cart.getItems().stream()
+                .map(item -> new OrderItem(item.getProductId(), item.getQuantity(), item.getPrice()))
+                .collect(Collectors.toList()));
+        order.setTotalAmount(cart.getTotalAmount());
+        order.setStatus("PLACED");
+        orderRepository.save(order);
 
-        List<OrderItem> orderItems = cart.getItems().stream().map(cartItem -> {
-            Product product = cartItem.getProduct();
-            if (product.getStockQuantity() < cartItem.getQuantity()) {
-                log.error("Insufficient stock for product: {} (Requested: {}, Available: {})", product.getName(), cartItem.getQuantity(), product.getStockQuantity());
-                throw new InsufficientStockException("Insufficient stock for product: " + product.getName());
-            }
-            product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
-            productRepository.save(product);
+        // 4. Deduct inventory
+        cart.getItems().forEach(item ->
+                productService.deductStock(item.getProductId(), item.getQuantity())
+        );
 
-            OrderItem orderItem = new OrderItem();
-            orderItem.setProduct(product);
-            orderItem.setProductName(product.getName());
-            orderItem.setProductPrice(product.getPrice());
-            orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setOrder(order);
-            return orderItem;
-        }
+        // 5. Send confirmation email asynchronously
+        emailService.sendOrderConfirmationAsync(userId, order);
+
+        // 6. Optionally, clear the user's cart
+        cartService.clearCart(userId);
     }
 }

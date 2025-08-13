@@ -56,6 +56,18 @@ public class ProductController {
         return ResponseEntity.ok(product.getImageData());
     }
 
+    @PostMapping("/generate-description")
+    public ResponseEntity<String> generateDescription(@RequestParam String name, @RequestParam String category) {
+        String aiDesc = productService.generateDescription(name, category);
+        return new ResponseEntity<>(aiDesc, HttpStatus.OK);
+    }
+
+    @PostMapping("/generate-image")
+    public ResponseEntity<?> generateImage(@RequestParam String name, @RequestParam String category, @RequestParam String description) {
+        byte[] aiImage = productService.generateImage(name, category, description);
+        return new ResponseEntity<>(aiImage, HttpStatus.OK);
+    }
+
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Product> addProduct(
