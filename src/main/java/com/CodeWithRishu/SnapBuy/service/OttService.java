@@ -5,6 +5,7 @@ import com.CodeWithRishu.SnapBuy.Entity.User;
 import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
 import com.CodeWithRishu.SnapBuy.repository.OttTokenRepository;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
@@ -19,6 +20,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class OttService {
 
@@ -34,20 +36,6 @@ public class OttService {
     private String mailFrom;
     @Value("${ott.token.expiry.seconds}")
     private long tokenExpirySeconds;
-
-    public OttService(
-            JavaMailSender javaMailSender,
-            UserRepository userRepository,
-            OttTokenRepository ottTokenRepository,
-            JwtService jwtService,
-            RefreshTokenService refreshTokenService
-    ) {
-        this.ottTokenRepository = ottTokenRepository;
-        this.userRepository = userRepository;
-        this.jwtService = jwtService;
-        this.refreshTokenService = refreshTokenService;
-        this.javaMailSender = javaMailSender;
-    }
 
     @Transactional(rollbackFor = SQLException.class)
     public void generateMagicLink(String username) {

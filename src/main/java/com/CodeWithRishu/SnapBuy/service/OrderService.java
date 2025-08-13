@@ -3,11 +3,13 @@ package com.CodeWithRishu.SnapBuy.service;
 import com.CodeWithRishu.SnapBuy.Entity.Order;
 import com.CodeWithRishu.SnapBuy.dto.request.StripeRequest;
 import com.CodeWithRishu.SnapBuy.repository.OrderRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class OrderService {
     /*Validate the user’s cart and selected items.
@@ -22,20 +24,6 @@ public class OrderService {
     private final ProductService productService;
     private final PaymentService paymentService;
     private final EmailService emailService;
-
-    @Autowired
-    public OrderService(
-            OrderRepository orderRepository,
-            CartService cartService,
-            ProductService productService,
-            PaymentService paymentService,
-            EmailService emailService) {
-        this.emailService = emailService;
-        this.productService = productService;
-        this.paymentService = paymentService;
-        this.cartService = cartService;
-        this.orderRepository = orderRepository;
-    }
 
     public void placeOrder(int userId) {
         Cart cart = cartService.getCartByUserId(userId);

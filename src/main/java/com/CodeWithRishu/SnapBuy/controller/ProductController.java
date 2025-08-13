@@ -2,7 +2,7 @@ package com.CodeWithRishu.SnapBuy.controller;
 
 import com.CodeWithRishu.SnapBuy.Entity.Product;
 import com.CodeWithRishu.SnapBuy.service.ProductService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,15 +14,11 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v2/products")
 public class ProductController {
 
     private final ProductService productService;
-
-    @Autowired
-    public ProductController(ProductService productService) {
-        this.productService = productService;
-    }
 
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")

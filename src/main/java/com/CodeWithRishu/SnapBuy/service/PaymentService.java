@@ -5,26 +5,18 @@ import com.CodeWithRishu.SnapBuy.dto.response.StripeResponse;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class PaymentService {
 
     private final String stripeSecretKey;
     private final String stripeSuccessUrl;
     private final String stripeCancelUrl;
-
-    public PaymentService(
-            @Value("${stripe.secret.key}") String stripeSecretKey,
-            @Value("${stripe.success.url}") String stripeSuccessUrl,
-            @Value("${stripe.cancel.url}") String stripeCancelUrl) {
-        this.stripeSecretKey = stripeSecretKey;
-        this.stripeSuccessUrl = stripeSuccessUrl;
-        this.stripeCancelUrl = stripeCancelUrl;
-    }
 
     public StripeResponse createOrderByStripe(StripeRequest stripeRequest) throws StripeException {
         log.info("Creating Stripe session with amount: {} and currency: {}", stripeRequest.getAmount(), stripeRequest.getCurrency());

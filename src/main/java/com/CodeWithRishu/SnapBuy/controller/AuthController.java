@@ -7,7 +7,7 @@ import com.CodeWithRishu.SnapBuy.dto.request.RefreshTokenRequest;
 import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
 import com.CodeWithRishu.SnapBuy.service.JwtService;
 import com.CodeWithRishu.SnapBuy.service.RefreshTokenService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,18 +16,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
 public class AuthController {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
-
-    @Autowired
-    public AuthController(RefreshTokenService refreshTokenService, JwtService jwtService, AuthenticationManager authenticationManager) {
-        this.refreshTokenService = refreshTokenService;
-        this.jwtService = jwtService;
-        this.authenticationManager = authenticationManager;
-    }
 
     @PostMapping("/signIn")
     public JwtResponse authenticateAndGetToken(@RequestBody AuthRequest authRequest) {

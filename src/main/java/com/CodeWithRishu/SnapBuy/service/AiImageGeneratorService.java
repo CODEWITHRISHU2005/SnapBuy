@@ -1,20 +1,21 @@
 package com.CodeWithRishu.SnapBuy.service;
 
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.ai.image.ImageModel;
 import org.springframework.ai.image.ImagePrompt;
 import org.springframework.ai.image.ImageResponse;
 import org.springframework.ai.openai.OpenAiImageOptions;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.URL;
 
 @Service
+@RequiredArgsConstructor
 public class AiImageGeneratorService {
 
-    @Autowired
-    private ImageModel imageModel;
+    private final ImageModel imageModel;
 
     public byte[] generateImage(String imagePrompt) {
 
@@ -27,7 +28,7 @@ public class AiImageGeneratorService {
                 .model("dall-e-3")
                 .build();
 
-        ImageResponse response = imageModel.call(new ImagePrompt(imagePrompt,options));
+        ImageResponse response = imageModel.call(new ImagePrompt(imagePrompt, options));
         String imageUrl = response.getResult().getOutput().getUrl();
 
         try {

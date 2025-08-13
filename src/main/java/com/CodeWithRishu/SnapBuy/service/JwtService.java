@@ -8,6 +8,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class JwtService {
     @Value("${jwt.secret}")
@@ -31,12 +33,6 @@ public class JwtService {
 
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
-
-    @Autowired
-    public JwtService(UserRepository repository, PasswordEncoder passwordEncoder) {
-        this.repository = repository;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     public String extractUsername(String token) {
         log.debug("Extracting username from token");

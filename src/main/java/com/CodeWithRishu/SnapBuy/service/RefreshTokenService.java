@@ -4,6 +4,7 @@ import com.CodeWithRishu.SnapBuy.Entity.RefreshToken;
 import com.CodeWithRishu.SnapBuy.Entity.User;
 import com.CodeWithRishu.SnapBuy.repository.RefreshTokenRepository;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -14,17 +15,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
+@RequiredArgsConstructor
 @Service
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
-
-    @Autowired
-    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository, UserRepository userInfoRepository) {
-        this.refreshTokenRepository = refreshTokenRepository;
-        this.userRepository = userInfoRepository;
-    }
 
     public RefreshToken createRefreshToken(String username) {
         log.info("Creating refresh token for user: {}", username);
