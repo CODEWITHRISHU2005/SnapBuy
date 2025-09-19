@@ -32,7 +32,7 @@ public class OttService {
 
     @Value("${app.base-url}")
     private String appBaseUrl;
-    @Value("${mail.from}")
+    @Value("${spring.mail.from}")
     private String mailFrom;
     @Value("${ott.token.expiry.seconds}")
     private long tokenExpirySeconds;

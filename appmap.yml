@@ -1,0 +1,5 @@
+language: "java"
+name: "SnapBuy"
+appmap_dir: "tmp/appmap"
+packages:
+- path: "com.CodeWithRishu.SnapBuy"

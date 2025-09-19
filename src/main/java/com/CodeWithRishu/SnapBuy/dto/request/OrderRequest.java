@@ -1,18 +1,17 @@
 package com.CodeWithRishu.SnapBuy.dto.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-public class OrderRequest {
-    private List<OrderItemDto> items;
-    private Long addressId;
-    private String paymentMethod;
+public record OrderRequest(
+        @NotBlank(message = "Customer name is required")
+        @NotNull(message = "Customer name cannot be null")
+        String customerName,
+        @Email
+        String email,
+        List<OrderItemRequest> items
+) {
 }

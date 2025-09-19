@@ -5,31 +5,41 @@ import com.CodeWithRishu.SnapBuy.exception.ResourceNotFoundException;
 import com.CodeWithRishu.SnapBuy.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ProductService {
 
     private final ProductRepository productRepository;
     private final AiImageGeneratorService aiImageGenService;
     private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+
+    public ProductService(
+            ProductRepository productRepository,
+            AiImageGeneratorService aiImageGenService,
+            ChatClient.Builder chatClientBuilder,
+            VectorStore vectorStore) {
+        this.productRepository = productRepository;
+        this.aiImageGenService = aiImageGenService;
+        this.chatClient = chatClientBuilder.build();
+        this.vectorStore = vectorStore;
+    }
 
     public List<Product> getAllProduct() {
         log.info("Fetching all products");
@@ -38,62 +48,72 @@ public class ProductService {
         return products;
     }
 
-    public Product getProductByIdOrThrow(int id) {
+    public Product getProductById(long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Product not found with id: {}", id);
-
-                    return new ResourceNotFoundException("Product", "id", id);
+                    return new ResourceNotFoundException("Product not found with this id try another: ");
                 });
     }
 
-    public Product addProduct(Product product, MultipartFile imageFile) throws IOException {
-        log.info("Adding new product: {}", product.getName());
+    public Product addOrUpdateProduct(Product product, MultipartFile image) throws IOException {
 
-        if (imageFile != null && !imageFile.isEmpty()) {
-            product.setImageData(imageFile.getBytes());
-            product.setImageType(imageFile.getContentType());
-            product.setImageName(StringUtils.cleanPath(Objects.requireNonNull(imageFile.getOriginalFilename())));
-            log.debug("Set image data for product: {}", product.getName());
+        Product.ProductBuilder builder = Product.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .brand(product.getBrand())
+                .price(product.getPrice())
+                .category(product.getCategory())
+                .releaseDate(product.getReleaseDate())
+                .productAvailable(product.isProductAvailable())
+                .stockQuantity(product.getStockQuantity());
+
+        if (image != null && !image.isEmpty()) {
+            builder.imageName(image.getOriginalFilename())
+                    .imageType(image.getContentType())
+                    .imageData(image.getBytes());
+        } else {
+            builder.imageName(product.getImageName())
+                    .imageType(product.getImageType())
+                    .imageData(product.getImageData());
         }
 
-        product.setProductAvailable(true);
-        product.setStockQuantity(100);
-        product.setReleaseDate(new Date());
+        Product savedProduct = productRepository.save(builder.build());
 
-        Product savedProduct = productRepository.save(product);
-        log.info("Product '{}' added with id {}", savedProduct.getName(), savedProduct.getId());
+        String content = String.format("""
+                        Product Name: %s
+                        Description: %s
+                        Brand: %s
+                        Category: %s
+                        Price: %.2f
+                        Release Date: %s
+                        Available: %s
+                        Stock: %s
+                        """,
+                savedProduct.getName(),
+                savedProduct.getDescription(),
+                savedProduct.getBrand(),
+                savedProduct.getCategory(),
+                savedProduct.getPrice(),
+                savedProduct.getReleaseDate(),
+                savedProduct.isProductAvailable(),
+                savedProduct.getStockQuantity()
+        );
+
+        Document document = new Document(
+                UUID.randomUUID().toString(),
+                content,
+                Map.of("productId", String.valueOf(savedProduct.getId()))
+        );
+
+        vectorStore.add(List.of(document));
+
         return savedProduct;
     }
 
-    public Product updateProductOrThrow(int id, Product productDetails, MultipartFile imageFile) throws IOException {
-        Product existingProduct = getProductByIdOrThrow(id);
-
-        log.info("Updating product with id: {}", id);
-        existingProduct.setName(productDetails.getName());
-        existingProduct.setDescription(productDetails.getDescription());
-        existingProduct.setBrand(productDetails.getBrand());
-        existingProduct.setPrice(productDetails.getPrice());
-        existingProduct.setCategory(productDetails.getCategory());
-        existingProduct.setReleaseDate(productDetails.getReleaseDate());
-        existingProduct.setStockQuantity(productDetails.getStockQuantity());
-        existingProduct.setProductAvailable(productDetails.isProductAvailable());
-
-        if (imageFile != null && !imageFile.isEmpty()) {
-            existingProduct.setImageData(imageFile.getBytes());
-            existingProduct.setImageType(imageFile.getContentType());
-            existingProduct.setImageName(StringUtils.cleanPath(Objects.requireNonNull(imageFile.getOriginalFilename())));
-            log.debug("Updated image for product id: {}", id);
-        }
-
-        Product updatedProduct = productRepository.save(existingProduct);
-        log.info("Product with id {} updated successfully", id);
-        return updatedProduct;
-    }
-
-    public void deleteProductOrThrow(int id) {
-        Product product = getProductByIdOrThrow(id);
-        productRepository.delete(product);
+    public void deleteProduct(long id) {
+        productRepository.deleteById(id);
         log.info("Product with id {} deleted successfully", id);
     }
 
@@ -109,6 +129,13 @@ public class ProductService {
         return productPage;
     }
 
+    public List<Product> searchProducts(String keyword) {
+        log.info("Searching products with keyword: {}", keyword);
+        List<Product> products = productRepository.searchProducts(keyword);
+        log.debug("Total products found: {}", products.size());
+        return products;
+    }
+
     public String generateDescription(String name, String category) {
         String descPrompt = String.format("""
                 
@@ -121,7 +148,7 @@ public class ProductService {
                 Avoid technical jargon and keep it customer-friendly.
                 Limit the description to 250 characters maximum.
                 
-                """, name , category );
+                """, name, category);
 
         return Objects.requireNonNull(chatClient.prompt(descPrompt)
                         .call()
@@ -152,7 +179,7 @@ public class ProductService {
                      - Follow the typical visual style of top e-commerce websites like Amazon, Flipkart, or Shopify.
                      - Make the product appear life-like and professionally photographed in a studio setup.
                      - The final image should look immediately ready for use on an e-commerce website without further editing.
-                     """, category, name, description);
+                """, category, name, description);
 
         return aiImageGenService.generateImage(imagePrompt);
     }

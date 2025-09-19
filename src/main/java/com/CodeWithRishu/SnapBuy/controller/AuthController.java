@@ -10,14 +10,12 @@ import com.CodeWithRishu.SnapBuy.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/auth")
+@CrossOrigin
 public class AuthController {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
@@ -26,28 +24,13 @@ public class AuthController {
     @PostMapping("/signIn")
     public JwtResponse authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
+                new UsernamePasswordAuthenticationToken(authRequest.username(), authRequest.password())
         );
 
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.getUsername());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.username());
         return JwtResponse.builder()
-                .accessToken(jwtService.generateToken(authRequest.getUsername()))
+                .accessToken(jwtService.generateToken(authRequest.username()))
                 .refreshToken(refreshToken.getToken()).build();
-    }
-
-    @PostMapping("/refreshToken")
-    public JwtResponse getRefreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
-        return refreshTokenService.findByToken(refreshTokenRequest.getToken())
-                .map(refreshTokenService::verifyExpiration)
-                .map(RefreshToken::getUserInfo)
-                .map(userInfo -> {
-                    String accessToken = jwtService.generateToken(userInfo.getName());
-                    return JwtResponse.builder()
-                            .accessToken(accessToken)
-                            .refreshToken(refreshTokenRequest.getToken())
-                            .build();
-                }).orElseThrow(() -> new RuntimeException(
-                        "Refresh token is not in database!"));
     }
 
     @PostMapping("/signUp")
@@ -59,4 +42,20 @@ public class AuthController {
                 .accessToken(jwtService.generateToken(userInfo.getName()))
                 .refreshToken(refreshToken.getToken()).build();
     }
+
+    @PostMapping("/refreshToken")
+    public JwtResponse getRefreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+        return refreshTokenService.findByToken(refreshTokenRequest.token())
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUserInfo)
+                .map(userInfo -> {
+                    String accessToken = jwtService.generateToken(userInfo.getName());
+                    return JwtResponse.builder()
+                            .accessToken(accessToken)
+                            .refreshToken(refreshTokenRequest.token())
+                            .build();
+                }).orElseThrow(() -> new RuntimeException(
+                        "Refresh token is not in database!"));
+    }
+
 }

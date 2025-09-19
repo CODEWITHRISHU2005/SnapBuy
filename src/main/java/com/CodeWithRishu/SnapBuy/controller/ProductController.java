@@ -3,6 +3,7 @@ package com.CodeWithRishu.SnapBuy.controller;
 import com.CodeWithRishu.SnapBuy.Entity.Product;
 import com.CodeWithRishu.SnapBuy.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,13 +16,14 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v2/products")
+@Slf4j
+@RequestMapping("/api/products")
+@CrossOrigin
 public class ProductController {
 
     private final ProductService productService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<Product>> getAllProducts() {
         return new ResponseEntity<>(productService.getAllProduct(), HttpStatus.OK);
     }
@@ -41,14 +43,14 @@ public class ProductController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_USER')")
     public ResponseEntity<Product> getProductById(@PathVariable int id) {
-        Product product = productService.getProductByIdOrThrow(id);
+        Product product = productService.getProductById(id);
         return ResponseEntity.ok(product);
     }
 
     @GetMapping("/{id}/image")
     @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_USER')")
     public ResponseEntity<byte[]> getProductImage(@PathVariable int id) {
-        Product product = productService.getProductByIdOrThrow(id);
+        Product product = productService.getProductById(id);
         return ResponseEntity.ok(product.getImageData());
     }
 
@@ -69,24 +71,22 @@ public class ProductController {
     public ResponseEntity<Product> addProduct(
             @RequestPart("product") Product product,
             @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) throws IOException {
-        Product savedProduct = productService.addProduct(product, (MultipartFile) imageFile);
+        Product savedProduct = productService.addOrUpdateProduct(product, (MultipartFile) imageFile);
         return new ResponseEntity<>(savedProduct, HttpStatus.CREATED);
-    }
-
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<Product> updateProduct(
-            @PathVariable int id,
-            @RequestPart("product") Product product,
-            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) throws IOException {
-        Product updatedProduct = productService.updateProductOrThrow(id, product, imageFile);
-        return ResponseEntity.ok(updatedProduct);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<Void> deleteProduct(@PathVariable int id) {
-        productService.deleteProductOrThrow(id);
+    public ResponseEntity<Void> deleteProduct(@PathVariable long id) {
+        productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Product>> searchProducts(@RequestParam String keyword){
+        List<Product> products = productService.searchProducts(keyword);
+        log.info("searching with {}", keyword);
+        return new ResponseEntity<>(products, HttpStatus.OK);
+    }
+
 }

@@ -4,14 +4,12 @@ import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
 import com.CodeWithRishu.SnapBuy.service.OttService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/ott")
+@RequestMapping("/api/ott")
+@CrossOrigin
 public class OttController {
 
     private final OttService ottService;
@@ -27,4 +25,5 @@ public class OttController {
         JwtResponse response = ottService.loginWithOttToken(token);
         return ResponseEntity.ok(response);
     }
+
 }

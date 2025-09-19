@@ -39,7 +39,7 @@ public class User extends AuditEntity {
     @Embedded
     private Address userAddress;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Order> orders;
 

@@ -1,12 +1,14 @@
 package com.CodeWithRishu.SnapBuy.dto.response;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class StripeResponse {
     private String sessionId;
     private String sessionUrl;

@@ -1,22 +1,27 @@
 package com.CodeWithRishu.SnapBuy.config;
 
 import com.CodeWithRishu.SnapBuy.Entity.User;
+import lombok.Getter;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CustomUserDetails implements org.springframework.security.core.userdetails.UserDetails {
-    private final String name;
+@Getter
+public class CustomUserDetails implements UserDetails {
+    private final String username;
     private final String password;
+    private final String email;
     private final List<GrantedAuthority> authorities;
 
     public CustomUserDetails(User userInfo) {
-        this.name = userInfo.getName();
+        this.username = userInfo.getName();
         this.password = userInfo.getPassword();
+        this.email = userInfo.getEmail();
         this.authorities = Arrays.stream(userInfo.getRoles().split(","))
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
@@ -34,7 +39,7 @@ public class CustomUserDetails implements org.springframework.security.core.user
 
     @Override
     public String getUsername() {
-        return this.name;
+        return this.username;
     }
 
     @Override

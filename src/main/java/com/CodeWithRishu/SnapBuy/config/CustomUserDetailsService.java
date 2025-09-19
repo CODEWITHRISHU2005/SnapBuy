@@ -2,15 +2,15 @@ package com.CodeWithRishu.SnapBuy.config;
 
 import com.CodeWithRishu.SnapBuy.Entity.User;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
 @Component
-public class CustomUserDetailsService implements org.springframework.security.core.userdetails.UserDetailsService {
+public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired
     private UserRepository repository;

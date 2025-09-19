@@ -5,12 +5,11 @@ import com.CodeWithRishu.SnapBuy.dto.response.StripeResponse;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class PaymentService {
 
@@ -18,24 +17,32 @@ public class PaymentService {
     private final String stripeSuccessUrl;
     private final String stripeCancelUrl;
 
+    public PaymentService(@Value("${stripe.secret.key}") String stripeSecretKey,
+                          @Value("${stripe.success.url}") String stripeSuccessUrl,
+                          @Value("${stripe.cancel.url}") String stripeCancelUrl) {
+        this.stripeSecretKey = stripeSecretKey;
+        this.stripeSuccessUrl = stripeSuccessUrl;
+        this.stripeCancelUrl = stripeCancelUrl;
+    }
+
     public StripeResponse createOrderByStripe(StripeRequest stripeRequest) throws StripeException {
-        log.info("Creating Stripe session with amount: {} and currency: {}", stripeRequest.getAmount(), stripeRequest.getCurrency());
+        log.info("Creating Stripe session with amount: {} and currency: {}", stripeRequest.amount(), stripeRequest.currency());
 
         SessionCreateParams.LineItem.PriceData.ProductData productData =
                 SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                        .setName(stripeRequest.getProductName())
+                        .setName(stripeRequest.productName())
                         .build();
 
         SessionCreateParams.LineItem.PriceData priceData =
                 SessionCreateParams.LineItem.PriceData.builder()
-                        .setCurrency(stripeRequest.getCurrency() != null ? stripeRequest.getCurrency() : "USD")
-                        .setUnitAmount(stripeRequest.getAmount())
+                        .setCurrency(stripeRequest.currency() != null ? stripeRequest.currency() : "USD")
+                        .setUnitAmount(stripeRequest.amount())
                         .setProductData(productData)
                         .build();
 
         SessionCreateParams.LineItem lineItem =
                 SessionCreateParams.LineItem.builder()
-                        .setQuantity(stripeRequest.getQuantity())
+                        .setQuantity(stripeRequest.quantity())
                         .setPriceData(priceData)
                         .build();
 

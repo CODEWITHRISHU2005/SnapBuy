@@ -94,12 +94,14 @@ public class JwtService {
     }
 
     public void addUser(User userInfo) {
-        log.info("Adding new user: {}", userInfo.getName());
-        if (repository.findByNameOrEmail(userInfo.getName(), userInfo.getEmail()).isPresent()) {
-            throw new UserAlreadyExists("User already exists with name: " + userInfo.getName());
+        log.info("Adding new user: {}", userInfo.getEmail());
+        if (repository.findByEmail(userInfo.getEmail()).isPresent()) {
+            throw new UserAlreadyExists("User already exists with email: " + userInfo.getEmail());
         }
+
         userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));
         repository.save(userInfo);
-        log.info("User '{}' added successfully", userInfo.getName());
+        log.info("User '{}' added successfully", userInfo.getEmail());
     }
+
 }
