@@ -9,7 +9,9 @@ public class StripeConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:8080") // Adjust for your frontend URL
-                .allowedMethods("POST");
+                .allowedOrigins("http://localhost:5000", "http://127.0.0.1:5000")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
     }
 }
