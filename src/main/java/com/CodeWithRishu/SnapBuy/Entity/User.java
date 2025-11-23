@@ -10,6 +10,7 @@ import org.hibernate.annotations.SoftDelete;
 import java.util.List;
 
 @Entity
+@Table(name = "app_user")
 @Getter
 @Setter
 @NoArgsConstructor
