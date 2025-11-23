@@ -15,6 +15,7 @@ JWT_SECRET_KEY = "temporary-secret-key-replace-with-real-key-min-32-chars"
 OPENAI_API_KEY = "sk-temp-key"
 STRIPE_SECRET_KEY = "sk_test_temp_key"
 EMAIL_PASSWORD = "temp_password"
+PGPASSWORD = "password"
 
 [workflows]
 runButton = "Project"
@@ -72,3 +73,7 @@ externalPort = 8080
 [[ports]]
 localPort = 43477
 externalPort = 3000
+
+[[ports]]
+localPort = 44895
+externalPort = 3001
