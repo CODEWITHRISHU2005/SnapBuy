@@ -21,6 +21,10 @@ const Navbar: React.FC = () => {
               Products
             </Link>
 
+            <Link to="/admin" className="hover:text-blue-200 bg-yellow-500 hover:bg-yellow-600 px-3 py-1 rounded">
+              Add Product
+            </Link>
+
             {isAuthenticated && (
               <Link to="/orders" className="hover:text-blue-200">
                 Orders
