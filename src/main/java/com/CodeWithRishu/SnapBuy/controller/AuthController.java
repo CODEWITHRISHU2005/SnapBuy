@@ -35,6 +35,12 @@ public class AuthController {
 
     @PostMapping("/signUp")
     public JwtResponse registerAndGetAccessAndRefreshToken(@RequestBody User userInfo) {
+        if (userInfo.getName() == null || userInfo.getName().isEmpty()) {
+            userInfo.setName(userInfo.getEmail().split("@")[0]);
+        }
+        if (userInfo.getRoles() == null || userInfo.getRoles().isEmpty()) {
+            userInfo.setRoles("ROLE_USER");
+        }
         jwtService.addUser(userInfo);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userInfo.getName());
 
