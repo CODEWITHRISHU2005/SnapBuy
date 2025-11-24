@@ -1,6 +1,7 @@
 package com.CodeWithRishu.SnapBuy.Entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 import lombok.*;
 
 import java.math.BigInteger;
@@ -29,4 +30,5 @@ public class Address {
 
     @Column(name = "phone_number", nullable = false)
     private BigInteger phoneNumber;
+
 }

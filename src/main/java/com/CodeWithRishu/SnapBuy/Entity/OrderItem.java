@@ -3,8 +3,6 @@ package com.CodeWithRishu.SnapBuy.Entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import lombok.*;
-import org.hibernate.annotations.DynamicInsert;
-import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.SoftDelete;
 
 import java.math.BigDecimal;

@@ -1,7 +1,6 @@
 package com.CodeWithRishu.SnapBuy.repository;
 
 import com.CodeWithRishu.SnapBuy.Entity.Product;
-import org.apache.catalina.LifecycleState;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

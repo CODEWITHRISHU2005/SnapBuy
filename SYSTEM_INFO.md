@@ -5,16 +5,16 @@
 
 ## System Overview
 - **Frontend**: React 18 + Vite + TypeScript + Tailwind CSS v4
-- **Backend**: Spring Boot 3.5.4 + Java 21
-- **Database**: PostgreSQL (Replit-managed)
-- **Authentication**: JWT with refresh tokens
+- **Backend**: Spring Boot 3.5.8 + Java 21
+- **Database**: MySQL (Replit-managed)
+- **Authentication**: JWT with refresh tokens + OTT
 - **API Documentation**: Swagger/OpenAPI
 
 ## Running Services
 - Backend: http://localhost:8080
 - Frontend: http://localhost:5000
 - Swagger UI: http://localhost:8080/swagger-ui.html
-- Database: Replit-managed PostgreSQL (helium)
+- Database: MySQL
 
 ## Sample Data
 **Products**: 5 pre-loaded items
@@ -31,10 +31,10 @@
 ## Technology Stack
 
 ### Backend
-- Spring Boot 3.5.4
+- Spring Boot 3.5.8
 - Spring Security with JWT
 - Spring Data JPA / Hibernate
-- PostgreSQL Driver
+- MySQL Driver
 - Lombok
 - Swagger/Springdoc OpenAPI
 
@@ -49,7 +49,7 @@
 
 ### DevOps
 - Replit (hosting)
-- PostgreSQL 17 (database)
+- MySQL 17 (database)
 - Maven (backend build)
 - npm (frontend build)
 

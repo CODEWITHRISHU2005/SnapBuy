@@ -24,12 +24,12 @@ public class AuthController {
     @PostMapping("/signIn")
     public JwtResponse authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(authRequest.username(), authRequest.password())
+                new UsernamePasswordAuthenticationToken(authRequest.email(), authRequest.password())
         );
 
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.username());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.email());
         return JwtResponse.builder()
-                .accessToken(jwtService.generateToken(authRequest.username()))
+                .accessToken(jwtService.generateToken(authRequest.email()))
                 .refreshToken(refreshToken.getToken()).build();
     }
 

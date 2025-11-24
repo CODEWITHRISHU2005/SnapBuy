@@ -1,6 +1,5 @@
 package com.CodeWithRishu.SnapBuy.service;
 
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.image.ImageModel;
 import org.springframework.ai.image.ImagePrompt;

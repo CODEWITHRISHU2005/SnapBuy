@@ -3,7 +3,7 @@
 ## ✅ Completed Features
 
 ### Backend (Spring Boot)
-- [x] User Authentication (JWT + Refresh Tokens)
+- [x] User Authentication (OTT + JWT + Refresh Tokens)
 - [x] User Registration & Login
 - [x] Product Management (CRUD)
 - [x] Product Search
@@ -12,7 +12,7 @@
 - [x] Error Handling & Global Exception Handler
 - [x] CORS Configuration
 - [x] Swagger API Documentation
-- [x] PostgreSQL Database Integration
+- [x] MySQL Database Integration
 - [x] JPA/Hibernate ORM
 
 ### Frontend (React + TypeScript)
@@ -27,7 +27,7 @@
 - [x] Auth Context & State Management
 - [x] Cart Context & State Management
 
-### Database (PostgreSQL)
+### Database (MySQL)
 - [x] User Table (app_user)
 - [x] Product Table
 - [x] Order Tables

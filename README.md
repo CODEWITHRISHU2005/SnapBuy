@@ -70,15 +70,15 @@ cd frontend && npm run dev
 - Context API (state management)
 
 ### Backend Stack
-- Spring Boot 3.5.4
+- Spring Boot 3.5.8
 - Java 21
-- PostgreSQL 17
+- MySQL 17
 - Spring Security with JWT
 - Hibernate ORM
 - Swagger/OpenAPI documentation
 
 ### Database
-- PostgreSQL (Replit-managed)
+- MySQL
 - 7 main entities
 - Auto-migrated schema
 - Pre-loaded sample data
