@@ -1,6 +1,6 @@
 # SnapBuy E-Commerce Platform
 
-A modern, full-stack e-commerce application built with React, TypeScript, Spring Boot, and PostgreSQL. Fully deployed and ready for production on Replit.
+A modern, full-stack e-commerce application built with React, TypeScript, Spring Boot, and MySQL.
 
 ## 🚀 Quick Start
 
