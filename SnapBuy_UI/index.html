@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+    <script>
+      // Apply theme immediately to prevent flash
+      // Tailwind uses 'dark' class on html for dark mode, absence means light mode
+      (function() {
+        try {
+          const savedTheme = localStorage.getItem('theme');
+          const theme = savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : 'light';
+          const html = document.documentElement;
+          html.classList.toggle('dark', theme === 'dark');
+          html.dataset.theme = theme;
+        } catch (e) {
+          // If localStorage fails, default to light mode
+          document.documentElement.classList.remove('dark');
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root" data-theme="light"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
