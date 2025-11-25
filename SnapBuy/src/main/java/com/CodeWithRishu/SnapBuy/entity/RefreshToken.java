@@ -11,7 +11,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class RefreshToken extends AuditEntity {
+public class RefreshToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,10 +21,19 @@ public class RefreshToken extends AuditEntity {
     private String token;
 
     @Column(nullable = false)
-    private Instant expiryDate;
+    private Instant createdAt;
+
+    @Column(nullable = false)
+    private Instant expiresAt;
 
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id", unique = true)
     private User userInfo;
 
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+    }
 }

@@ -1,7 +1,7 @@
 package com.CodeWithRishu.SnapBuy.config;
 
-import com.CodeWithRishu.SnapBuy.filter.JwtAuthFilter;
-import com.CodeWithRishu.SnapBuy.filter.MagicLinkOttGenerationSuccessHandler;
+import com.CodeWithRishu.SnapBuy.handler.JwtAuthFilter;
+import com.CodeWithRishu.SnapBuy.handler.MagicLinkOttGenerationSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

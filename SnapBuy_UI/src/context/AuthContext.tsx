@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   login: (credentials: AuthRequest) => Promise<void>;
   register: (userData: User) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   logout: () => void;
   setUserFromToken: () => void;
   isAuthenticated: boolean;
@@ -97,6 +98,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const loginWithGoogle = async (credential: string) => {
+    try {
+      const response = await authAPI.googleSignIn(credential);
+      const { accessToken, refreshToken } = response.data;
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+
+      const decodedToken = decodeToken(accessToken);
+      console.log('Google Login - Decoded Token:', decodedToken);
+
+      const userData: User = {
+        id: decodedToken.id || 0,
+        name: decodedToken.sub || '',
+        email: decodedToken.email || '',
+        roles: decodedToken.roles || '',
+      };
+
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+    } catch (error) {
+      console.error('Google login failed:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
@@ -133,6 +159,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loading,
         login,
         register,
+        loginWithGoogle,
         logout,
         setUserFromToken,
         isAuthenticated: !!user,

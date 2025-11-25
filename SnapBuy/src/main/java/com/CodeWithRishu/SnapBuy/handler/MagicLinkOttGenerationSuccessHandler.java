@@ -1,4 +1,4 @@
-package com.CodeWithRishu.SnapBuy.filter;
+package com.CodeWithRishu.SnapBuy.handler;
 
 import com.CodeWithRishu.SnapBuy.config.CustomUserDetails;
 import com.CodeWithRishu.SnapBuy.config.CustomUserDetailsService;

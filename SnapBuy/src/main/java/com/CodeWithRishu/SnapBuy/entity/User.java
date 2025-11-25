@@ -1,5 +1,6 @@
 package com.CodeWithRishu.SnapBuy.entity;
 
+import com.CodeWithRishu.SnapBuy.dto.Provider;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
@@ -31,8 +32,13 @@ public class User extends AuditEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
     private String password;
+
+    private String profileImage;
+
+    @Enumerated(EnumType.STRING)
+    @JsonIgnore
+    private Provider provider = Provider.LOCAL;
 
     @Column(nullable = false)
     private String roles;

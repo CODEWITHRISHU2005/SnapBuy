@@ -41,7 +41,7 @@ public class AuthController {
         if (userInfo.getRoles() == null || userInfo.getRoles().isEmpty()) {
             userInfo.setRoles("ROLE_USER");
         }
-        jwtService.addUser(userInfo);
+        jwtService.register(userInfo);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userInfo.getName());
 
         return JwtResponse.builder()

@@ -83,7 +83,7 @@ public class JwtService {
                 .setClaims(claims)
                 .setSubject(email)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30)) // 30-minute expiration
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 15)) // 15 days
                 .signWith(getSignKey(), SignatureAlgorithm.HS512).compact();
     }
 
@@ -93,7 +93,7 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public void addUser(User userInfo) {
+    public void register(User userInfo) {
         log.info("Adding new user: {}", userInfo.getEmail());
         if (repository.findByEmail(userInfo.getEmail()).isPresent()) {
             throw new UserAlreadyExists("User already exists with email: " + userInfo.getEmail());
@@ -104,4 +104,14 @@ public class JwtService {
         log.info("User '{}' added successfully", userInfo.getEmail());
     }
 
+    public void registerForGoogle(User user) {
+        log.info("Adding new Google user: {}", user.getEmail());
+        if (repository.findByEmail(user.getEmail()).isPresent()) {
+            log.info("User already exists with email: {}", user.getEmail());
+            return;
+        }
+
+        repository.save(user);
+        log.info("Google user '{}' added successfully", user.getEmail());
+    }
 }

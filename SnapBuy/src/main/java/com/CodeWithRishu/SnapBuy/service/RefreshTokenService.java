@@ -38,7 +38,7 @@ public class RefreshTokenService {
         RefreshToken refreshToken = RefreshToken.builder()
                 .userInfo(user)
                 .token(UUID.randomUUID().toString())
-                .expiryDate(Instant.now().plusMillis(60000 * 60 * 24 * 15)) // 15 days expiry
+                .expiresAt(Instant.now().plusMillis(60000 * 60 * 24 * 15)) // 15 days expiry
                 .build();
 
         RefreshToken savedToken = refreshTokenRepository.save(refreshToken);
@@ -59,7 +59,7 @@ public class RefreshTokenService {
 
     public RefreshToken verifyExpiration(RefreshToken token) {
         log.debug("Verifying expiration for refresh token: {}", token.getToken());
-        if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
+        if (token.getExpiresAt().compareTo(Instant.now()) < 0) {
             log.warn("Refresh token expired: {}", token.getToken());
             refreshTokenRepository.delete(token);
             throw new RuntimeException(token.getToken() + " Refresh token was expired. Please make a new sign in request");

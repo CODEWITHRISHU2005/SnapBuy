@@ -47,6 +47,7 @@ export const authAPI = {
   signIn: (data: AuthRequest) => api.post<JwtResponse>('/auth/signIn', data),
   signUp: (data: User) => api.post<JwtResponse>('/auth/signUp', data),
   refreshToken: (token: string) => api.post<JwtResponse>('/auth/refreshToken', { token }),
+  googleSignIn: (credential: string) => api.post<JwtResponse>('/auth/google', { credential }),
 };
 
 export const productAPI = {
