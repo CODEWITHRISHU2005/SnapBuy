@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -69,13 +70,21 @@ public class JwtService {
         return valid;
     }
 
-    public String generateToken(String email) {
+    public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
-        String token = createToken(claims, email);
 
-        log.info("Generated JWT for user '{}', expires at {}", email, extractExpiration(token));
+        claims.put("roles", user.getRoles().stream()
+                .map(Enum::name)
+                .collect(Collectors.toList()));
+
+        String token = createToken(claims, user.getEmail());
+
+        log.info("Generated JWT for user '{}', roles={}, expires at {}",
+                user.getEmail(), user.getRoles(), extractExpiration(token));
+
         return token;
     }
+
 
     private String createToken(Map<String, Object> claims, String email) {
         log.debug("Creating token for user '{}'", email);

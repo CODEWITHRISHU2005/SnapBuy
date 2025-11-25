@@ -1,12 +1,13 @@
 package com.CodeWithRishu.SnapBuy.handler;
 
 import com.CodeWithRishu.SnapBuy.dto.Provider;
+import com.CodeWithRishu.SnapBuy.dto.Role;
 import com.CodeWithRishu.SnapBuy.entity.RefreshToken;
 import com.CodeWithRishu.SnapBuy.entity.User;
 import com.CodeWithRishu.SnapBuy.repository.RefreshTokenRepository;
+import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import com.CodeWithRishu.SnapBuy.service.JwtService;
 import com.CodeWithRishu.SnapBuy.service.RefreshTokenService;
-import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,7 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.time.Instant;
+import java.util.Set;
 
 @Component
 @Slf4j
@@ -30,6 +31,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
 
     @Value("${app.auth.success-redirect}")
@@ -38,44 +40,57 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     @Value("${app.auth.failure-redirect}")
     private String frontendFailureRedirectURL;
 
-    @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) throws IOException, ServletException {
-        AuthenticationSuccessHandler.super.onAuthenticationSuccess(request, response, chain, authentication);
-    }
-
     @Transactional
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request,
+                                        HttpServletResponse response,
+                                        Authentication authentication) throws IOException, ServletException {
+
+        if (!(authentication instanceof OAuth2AuthenticationToken token)) {
+            log.error("Unsupported authentication type: {}", authentication.getClass());
+            response.sendRedirect(frontendFailureRedirectURL);
+            return;
+        }
 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-        String registrationId = "unknown";
-
-        if (authentication instanceof OAuth2AuthenticationToken token) {
-            registrationId = token.getAuthorizedClientRegistrationId();
-        }
+        String registrationId = token.getAuthorizedClientRegistrationId();
 
         log.debug("OAuth2 user attributes: {}", oAuth2User.getAttributes());
 
-        User user;
-        if (registrationId.equals("google")) {
-            String email = oAuth2User.getAttributes().getOrDefault("email", "").toString();
-            String name = oAuth2User.getAttributes().getOrDefault("name", "").toString();
-            String image = oAuth2User.getAttributes().getOrDefault("picture", "").toString();
-            user = User.builder()
+        User user = processOAuth2User(oAuth2User, registrationId);
+
+        String accessToken = jwtService.generateToken(user);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getEmail());
+        refreshTokenRepository.save(refreshToken);
+
+        String redirectUrl = String.format("%s?accessToken=%s&refreshToken=%s",
+                frontendSuccessRedirectURL, accessToken, refreshToken.getToken());
+
+        log.info("Login/Signup success for {}, roles={}, redirecting with tokens",
+                user.getEmail(), user.getRoles());
+
+        response.sendRedirect(redirectUrl);
+    }
+
+    private User processOAuth2User(OAuth2User oAuth2User, String registrationId) {
+        String email = oAuth2User.getAttribute("email");
+        String name = oAuth2User.getAttribute("name");
+        String image = oAuth2User.getAttribute("picture");
+
+        return userRepository.findByEmail(email).map(existingUser -> {
+            existingUser.setName(name);
+            existingUser.setProfileImage(image);
+            existingUser.setProvider(Provider.valueOf(registrationId.toUpperCase()));
+            return userRepository.save(existingUser);
+        }).orElseGet(() -> {
+            User newUser = User.builder()
                     .email(email)
                     .name(name)
                     .provider(Provider.GOOGLE)
                     .profileImage(image)
+                    .roles(Set.of(Role.USER))
                     .build();
-            jwtService.registerForGoogle(user);
-        } else {
-            response.sendRedirect(frontendFailureRedirectURL);
-            throw new RuntimeException("Failed to login with google for registrationId: " + registrationId);
-        }
-
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getEmail());
-
-        refreshTokenRepository.save(refreshToken);
-        response.sendRedirect(frontendSuccessRedirectURL);
+            return userRepository.save(newUser);
+        });
     }
-
 }

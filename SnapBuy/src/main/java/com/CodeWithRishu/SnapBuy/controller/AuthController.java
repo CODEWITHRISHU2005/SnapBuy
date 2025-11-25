@@ -28,24 +28,21 @@ public class AuthController {
         );
 
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.email());
+        User user = refreshToken.getUserInfo();
         return JwtResponse.builder()
-                .accessToken(jwtService.generateToken(authRequest.email()))
+                .accessToken(jwtService.generateToken(user))
                 .refreshToken(refreshToken.getToken()).build();
     }
 
     @PostMapping("/signUp")
     public JwtResponse registerAndGetAccessAndRefreshToken(@RequestBody User userInfo) {
-        if (userInfo.getName() == null || userInfo.getName().isEmpty()) {
+        if (userInfo.getName() == null || userInfo.getName().isEmpty())
             userInfo.setName(userInfo.getEmail().split("@")[0]);
-        }
-        if (userInfo.getRoles() == null || userInfo.getRoles().isEmpty()) {
-            userInfo.setRoles("ROLE_USER");
-        }
         jwtService.register(userInfo);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userInfo.getName());
 
         return JwtResponse.builder()
-                .accessToken(jwtService.generateToken(userInfo.getName()))
+                .accessToken(jwtService.generateToken(userInfo))
                 .refreshToken(refreshToken.getToken()).build();
     }
 
@@ -55,7 +52,7 @@ public class AuthController {
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUserInfo)
                 .map(userInfo -> {
-                    String accessToken = jwtService.generateToken(userInfo.getName());
+                    String accessToken = jwtService.generateToken(userInfo);
                     return JwtResponse.builder()
                             .accessToken(accessToken)
                             .refreshToken(refreshTokenRequest.token())

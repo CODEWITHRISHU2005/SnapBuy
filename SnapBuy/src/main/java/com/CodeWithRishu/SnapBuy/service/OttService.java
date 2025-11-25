@@ -30,7 +30,7 @@ public class OttService {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
 
-    @Value("${app.base-url}")
+    @Value("${app.api.base-url}")
     private String appBaseUrl;
     @Value("${spring.mail.from}")
     private String mailFrom;
@@ -116,7 +116,7 @@ public class OttService {
         }
 
         String userName = ottToken.getUser().getName();
-        String jwt = jwtService.generateToken(userName);
+        String jwt = jwtService.generateToken(ottToken.getUser());
         log.debug("Generated JWT for user: {}", userName);
         log.info("Generated JWT for user: {}", userName);
 

@@ -34,7 +34,38 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+
+    // Check for token or error in URL (from OAuth redirect)
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token') || params.get('accessToken');
+    const refreshToken = params.get('refreshToken');
+    const errorParam = params.get('error');
+
+    if (token) {
+      localStorage.setItem('accessToken', token);
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
+      }
+
+      try {
+        const decodedToken = decodeToken(token);
+        const userData = {
+          id: decodedToken.id || 0,
+          name: decodedToken.sub || '',
+          email: decodedToken.email || '',
+          roles: decodedToken.roles || '',
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUserFromToken();
+        navigate('/');
+      } catch (e) {
+        console.error("Failed to process token from URL", e);
+        setError('Authentication failed. Invalid token.');
+      }
+    } else if (errorParam) {
+      setError(errorParam === 'oauth_failed' ? 'Google login failed. Please try again.' : errorParam);
+    }
+  }, [setUserFromToken, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,9 +154,9 @@ const LoginPage: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    // Redirect to backend OAuth2 endpoint
-    // Spring Security will handle the OAuth flow with Google
-    window.location.href = 'http://localhost:8080/login/oauth2/google';
+    // The frontend must redirect to the authorization endpoint to START the flow.
+    // Spring Security will then redirect to Google with the configured redirect-uri (login/oauth2/code/google)
+    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
   };
 
   return (

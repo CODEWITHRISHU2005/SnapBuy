@@ -10,6 +10,7 @@ import AdminPage from './pages/AdminPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrdersPage from './pages/OrdersPage';
+import OAuth2Callback from './pages/OAuth2Callback';
 import { Package } from 'lucide-react';
 
 function SplashScreen({ onFinish }: { onFinish: () => void }) {
@@ -65,6 +66,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/login" element={<LoginPage />} />
+                  <Route path="/oauth2/callback" element={<OAuth2Callback />} />
                   <Route path="/admin" element={<AdminPage />} />
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/checkout" element={<CheckoutPage />} />

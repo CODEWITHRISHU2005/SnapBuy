@@ -2,9 +2,12 @@ package com.CodeWithRishu.SnapBuy.config;
 
 import com.CodeWithRishu.SnapBuy.handler.JwtAuthFilter;
 import com.CodeWithRishu.SnapBuy.handler.MagicLinkOttGenerationSuccessHandler;
-import lombok.RequiredArgsConstructor;
+import com.CodeWithRishu.SnapBuy.handler.OAuth2SuccessHandler;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.mail.MailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -21,13 +24,33 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.util.Map;
+
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final MailSender mailSender;
+
+
+    public SecurityConfig(
+            UserDetailsService userDetailsService, CustomUserDetailsService customUserDetailsService,
+            MailSender mailSender,
+            @Lazy OAuth2SuccessHandler oAuth2SuccessHandler
+    ) {
+        this.userDetailsService = userDetailsService;
+        this.customUserDetailsService = customUserDetailsService;
+        this.mailSender = mailSender;
+        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
+    }
+
+    @Value("${app.auth.failure-redirect}")
+    private String failureRedirectURL;
+
+    @Value("${app.auth.success-redirect}")
+    private String successRedirectURL;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
@@ -37,17 +60,47 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",
-                                "api/ott/**",
+                                "/api/ott/**",
+                                "/login/oauth2/code/google/**",
                                 "/swagger-ui/**",
-                                "/v3/api-docs").permitAll()
+                                "/favicon.ico",
+                                "/error",
+                                "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authenticationProvider(authenticationProvider())
-                .formLogin(Customizer.withDefaults())
+                .oauth2Login(oauth2 ->
+                        oauth2
+                                .loginPage("/login")
+                                .successHandler(oAuth2SuccessHandler)
+                                .failureHandler((req, resp, e) -> {
+                                    resp.setStatus(401);
+                                    resp.sendRedirect(failureRedirectURL);
+                                })
+                )
+                .logout(AbstractHttpConfigurer::disable)
                 .oneTimeTokenLogin(ott -> ott
                         .tokenGenerationSuccessHandler(oneTimeTokenGenerationSuccessHandler())
                         .permitAll())
+                .exceptionHandling(eh -> eh.authenticationEntryPoint((req, resp, e) -> {
+                    e.printStackTrace();
+                    resp.setStatus(401);
+                    resp.setContentType("application/json");
+
+                    String message = (String) req.getAttribute("exception");
+
+                    ObjectMapper om = new ObjectMapper();
+
+                    if (message != null && message.trim().equals("token_expired")) {
+                        resp.getWriter().println(om.writeValueAsString(Map.of("message", "token_expired")));
+                        return;
+                    } else if (message != null && message.trim().equals("invalid_token")) {
+                        resp.getWriter().println(om.writeValueAsString(Map.of("message", "invalid_token")));
+                    } else {
+                        resp.getWriter().println(om.writeValueAsString(Map.of("message", e.getMessage())));
+                    }
+                }))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
