@@ -1,9 +1,8 @@
 package com.CodeWithRishu.SnapBuy.service;
 
-import com.CodeWithRishu.SnapBuy.Entity.Product;
+import com.CodeWithRishu.SnapBuy.entity.Product;
 import com.CodeWithRishu.SnapBuy.exception.ResourceNotFoundException;
 import com.CodeWithRishu.SnapBuy.repository.ProductRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;

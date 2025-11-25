@@ -1,4 +1,4 @@
-package com.CodeWithRishu.SnapBuy.Entity;
+package com.CodeWithRishu.SnapBuy.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,12 +11,13 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class OttToken extends AuditEntity {
+public class RefreshToken extends AuditEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name = "access_token", nullable = false, unique = true)
+    @Column(name = "refresh_token", nullable = false, unique = true)
     private String token;
 
     @Column(nullable = false)
@@ -24,5 +25,6 @@ public class OttToken extends AuditEntity {
 
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id", unique = true)
-    private User user;
+    private User userInfo;
+
 }

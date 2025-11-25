@@ -1,6 +1,6 @@
 package com.CodeWithRishu.SnapBuy.config;
 
-import com.CodeWithRishu.SnapBuy.Entity.User;
+import com.CodeWithRishu.SnapBuy.entity.User;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetailsService;

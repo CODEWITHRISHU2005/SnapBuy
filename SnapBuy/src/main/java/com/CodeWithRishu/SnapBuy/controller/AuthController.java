@@ -1,7 +1,7 @@
 package com.CodeWithRishu.SnapBuy.controller;
 
-import com.CodeWithRishu.SnapBuy.Entity.RefreshToken;
-import com.CodeWithRishu.SnapBuy.Entity.User;
+import com.CodeWithRishu.SnapBuy.entity.RefreshToken;
+import com.CodeWithRishu.SnapBuy.entity.User;
 import com.CodeWithRishu.SnapBuy.dto.request.AuthRequest;
 import com.CodeWithRishu.SnapBuy.dto.request.RefreshTokenRequest;
 import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
@@ -24,12 +24,12 @@ public class AuthController {
     @PostMapping("/signIn")
     public JwtResponse authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(authRequest.username(), authRequest.password())
+                new UsernamePasswordAuthenticationToken(authRequest.email(), authRequest.password())
         );
 
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.username());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.email());
         return JwtResponse.builder()
-                .accessToken(jwtService.generateToken(authRequest.username()))
+                .accessToken(jwtService.generateToken(authRequest.email()))
                 .refreshToken(refreshToken.getToken()).build();
     }
 

@@ -1,6 +1,6 @@
 package com.CodeWithRishu.SnapBuy.config;
 
-import com.CodeWithRishu.SnapBuy.Entity.User;
+import com.CodeWithRishu.SnapBuy.entity.User;
 import lombok.Getter;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.GrantedAuthority;

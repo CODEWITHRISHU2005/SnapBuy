@@ -1,6 +1,6 @@
 package com.CodeWithRishu.SnapBuy.controller;
 
-import com.CodeWithRishu.SnapBuy.Entity.Product;
+import com.CodeWithRishu.SnapBuy.entity.Product;
 import com.CodeWithRishu.SnapBuy.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

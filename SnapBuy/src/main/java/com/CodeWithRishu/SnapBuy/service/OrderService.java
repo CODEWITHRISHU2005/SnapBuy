@@ -1,8 +1,8 @@
 package com.CodeWithRishu.SnapBuy.service;
 
-import com.CodeWithRishu.SnapBuy.Entity.Order;
-import com.CodeWithRishu.SnapBuy.Entity.OrderItem;
-import com.CodeWithRishu.SnapBuy.Entity.Product;
+import com.CodeWithRishu.SnapBuy.entity.Order;
+import com.CodeWithRishu.SnapBuy.entity.OrderItem;
+import com.CodeWithRishu.SnapBuy.entity.Product;
 import com.CodeWithRishu.SnapBuy.dto.OrderStatus;
 import com.CodeWithRishu.SnapBuy.dto.request.OrderItemRequest;
 import com.CodeWithRishu.SnapBuy.dto.request.OrderRequest;

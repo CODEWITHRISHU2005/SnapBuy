@@ -1,6 +1,6 @@
 package com.CodeWithRishu.SnapBuy.service;
 
-import com.CodeWithRishu.SnapBuy.Entity.User;
+import com.CodeWithRishu.SnapBuy.entity.User;
 import com.CodeWithRishu.SnapBuy.exception.UserAlreadyExists;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -69,22 +69,22 @@ public class JwtService {
         return valid;
     }
 
-    public String generateToken(String userName) {
+    public String generateToken(String email) {
         Map<String, Object> claims = new HashMap<>();
-        String token = createToken(claims, userName);
+        String token = createToken(claims, email);
 
-        log.info("Generated JWT for user '{}', expires at {}", userName, extractExpiration(token));
+        log.info("Generated JWT for user '{}', expires at {}", email, extractExpiration(token));
         return token;
     }
 
-    private String createToken(Map<String, Object> claims, String userName) {
-        log.debug("Creating token for user '{}'", userName);
+    private String createToken(Map<String, Object> claims, String email) {
+        log.debug("Creating token for user '{}'", email);
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(userName)
+                .setSubject(email)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30)) // 30-minute expiration
-                .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
+                .signWith(getSignKey(), SignatureAlgorithm.HS512).compact();
     }
 
     private Key getSignKey() {

@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (credentials: AuthRequest) => Promise<void>;
   register: (userData: User) => Promise<void>;
   logout: () => void;
+  setUserFromToken: () => void;
   isAuthenticated: boolean;
 }
 
@@ -103,6 +104,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
+  const setUserFromToken = () => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      try {
+        const decodedToken = decodeToken(token);
+        const userStr = localStorage.getItem('user');
+        const storedUser = userStr ? JSON.parse(userStr) : {};
+
+        const userData: User = {
+          ...storedUser,
+          id: decodedToken.id || storedUser.id || 0,
+          name: decodedToken.sub || storedUser.name || '',
+          email: decodedToken.email || storedUser.email || '',
+          roles: decodedToken.roles || storedUser.roles || '',
+        };
+        setUser(userData);
+      } catch (e) {
+        console.error("Failed to set user from token", e);
+      }
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -111,6 +134,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login,
         register,
         logout,
+        setUserFromToken,
         isAuthenticated: !!user,
       }}
     >

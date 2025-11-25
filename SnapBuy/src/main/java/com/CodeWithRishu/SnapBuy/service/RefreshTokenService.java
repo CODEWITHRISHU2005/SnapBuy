@@ -1,7 +1,7 @@
 package com.CodeWithRishu.SnapBuy.service;
 
-import com.CodeWithRishu.SnapBuy.Entity.RefreshToken;
-import com.CodeWithRishu.SnapBuy.Entity.User;
+import com.CodeWithRishu.SnapBuy.entity.RefreshToken;
+import com.CodeWithRishu.SnapBuy.entity.User;
 import com.CodeWithRishu.SnapBuy.repository.RefreshTokenRepository;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,17 +21,17 @@ public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
 
-    public RefreshToken createRefreshToken(String username) {
-        log.info("Creating refresh token for user: {}", username);
-        User user = userRepository.findByName(username)
+    public RefreshToken createRefreshToken(String email) {
+        log.info("Creating refresh token for user: {}", email);
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.warn("User not found: {}", username);
+                    log.warn("User not found: {}", email);
                     return new UsernameNotFoundException("User not found");
                 });
 
-        log.debug("Deleting old refresh token for user: {}", username);
+        log.debug("Deleting old refresh token for user: {}", email);
         refreshTokenRepository.findByUserInfo(user).ifPresent(existingToken -> {
-            log.debug("Old refresh token exists, deleting it for user: {}", username);
+            log.debug("Old refresh token exists, deleting it for user: {}", email);
             refreshTokenRepository.delete(existingToken);
         });
 
@@ -42,7 +42,7 @@ public class RefreshTokenService {
                 .build();
 
         RefreshToken savedToken = refreshTokenRepository.save(refreshToken);
-        log.info("Refresh token created for user: {}, token: {}", username, savedToken.getToken());
+        log.info("Refresh token created for user: {}, token: {}", email, savedToken.getToken());
         return savedToken;
     }
 

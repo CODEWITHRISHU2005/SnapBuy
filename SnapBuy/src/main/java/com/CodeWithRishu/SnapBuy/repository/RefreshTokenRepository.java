@@ -1,7 +1,7 @@
 package com.CodeWithRishu.SnapBuy.repository;
 
-import com.CodeWithRishu.SnapBuy.Entity.RefreshToken;
-import com.CodeWithRishu.SnapBuy.Entity.User;
+import com.CodeWithRishu.SnapBuy.entity.RefreshToken;
+import com.CodeWithRishu.SnapBuy.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

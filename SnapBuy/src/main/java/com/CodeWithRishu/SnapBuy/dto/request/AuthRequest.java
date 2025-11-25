@@ -1,4 +1,4 @@
 package com.CodeWithRishu.SnapBuy.dto.request;
 
-public record AuthRequest(String username, String password) {
+public record AuthRequest(String email, String password) {
 }

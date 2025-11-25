@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ottAPI } from '../services/api';
-import { Package, Mail, Lock, User, ArrowRight, MapPin, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { Package, Mail, Lock, User, ArrowRight, MapPin, CheckCircle2, AlertCircle, Sparkles, Phone } from 'lucide-react';
 import type { Address } from '../types';
 import { decodeToken } from '../utils/jwt';
 
@@ -14,6 +14,7 @@ const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -28,7 +29,7 @@ const LoginPage: React.FC = () => {
     country: '',
   });
 
-  const { login, register } = useAuth();
+  const { login, register, setUserFromToken } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,6 +53,7 @@ const LoginPage: React.FC = () => {
           name: username,
           email: username,
           password,
+          phoneNumber,
           roles: role,
           userAddress: address
         });
@@ -108,6 +110,9 @@ const LoginPage: React.FC = () => {
         roles: decodedToken.roles || '',
       };
       localStorage.setItem('user', JSON.stringify(userData));
+
+      // Update AuthContext state so user is shown as logged in
+      setUserFromToken();
 
       navigate('/');
     } catch (err: any) {
@@ -296,6 +301,27 @@ const LoginPage: React.FC = () => {
                     </div>
 
                     <div className="animate-slide-in-bottom delay-150">
+                      <label htmlFor="phoneNumber" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        Phone Number
+                      </label>
+                      <div className="relative group input-glow">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
+                          <Phone className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
+                        </div>
+                        <input
+                          id="phoneNumber"
+                          name="phoneNumber"
+                          type="tel"
+                          required
+                          className="block w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
+                          placeholder="Enter your phone number"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="animate-slide-in-bottom delay-200">
                       <label htmlFor="role" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                         Role
                       </label>
@@ -322,7 +348,7 @@ const LoginPage: React.FC = () => {
                     </div>
 
                     {/* Address Fields */}
-                    <div className="animate-slide-in-bottom delay-200 space-y-4 pt-4 border-t-2 border-slate-200 dark:border-slate-700">
+                    <div className="animate-slide-in-bottom delay-300 space-y-4 pt-4 border-t-2 border-slate-200 dark:border-slate-700">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
                           <MapPin className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
@@ -466,6 +492,7 @@ const LoginPage: React.FC = () => {
                     setIsLogin(!isLogin);
                     setError('');
                     if (!isLogin) {
+                      setPhoneNumber('');
                       setAddress({
                         street: '',
                         city: '',

@@ -1,4 +1,4 @@
-package com.CodeWithRishu.SnapBuy.Entity;
+package com.CodeWithRishu.SnapBuy.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,21 +12,17 @@ import java.math.BigInteger;
 @AllArgsConstructor
 @Builder
 public class Address {
-    @Column(name = "street", nullable = false)
     private String street;
 
-    @Column(name = "city", nullable = false)
     private String city;
 
-    @Column(name = "state", nullable = false)
     private String state;
 
-    @Column(name = "pin_code", nullable = false)
+    @Column(name = "pin_code")
     private int pinCode;
 
-    @Column(name = "country", nullable = false)
     private String country;
 
-    @Column(name = "phone_number", nullable = false)
+    @Column(name = "phone_number")
     private BigInteger phoneNumber;
 }

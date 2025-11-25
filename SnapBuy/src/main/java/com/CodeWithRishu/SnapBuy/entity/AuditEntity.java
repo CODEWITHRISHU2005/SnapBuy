@@ -1,4 +1,4 @@
-package com.CodeWithRishu.SnapBuy.Entity;
+package com.CodeWithRishu.SnapBuy.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;

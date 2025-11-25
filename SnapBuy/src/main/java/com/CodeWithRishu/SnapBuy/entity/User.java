@@ -1,4 +1,4 @@
-package com.CodeWithRishu.SnapBuy.Entity;
+package com.CodeWithRishu.SnapBuy.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -10,7 +10,7 @@ import org.hibernate.annotations.SoftDelete;
 import java.util.List;
 
 @Entity
-@Table(name = "app_user")
+@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
