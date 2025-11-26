@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { decodeToken } from '../utils/jwt';
-import { Package, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const OAuth2Callback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -48,6 +48,7 @@ const OAuth2Callback: React.FC = () => {
           name: decodedToken.sub || '',
           email: decodedToken.email || '',
           roles: decodedToken.roles || '',
+          profileImage: decodedToken.profileImage || decodedToken.picture || '',
         };
 
         // Store user data
@@ -59,7 +60,7 @@ const OAuth2Callback: React.FC = () => {
         // Success!
         setStatus('success');
         setMessage('Login successful! Redirecting...');
-        
+
         // Redirect to home page after a brief delay
         setTimeout(() => navigate('/'), 1500);
       } catch (error) {

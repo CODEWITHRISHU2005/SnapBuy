@@ -95,9 +95,17 @@ const Navbar: React.FC = () => {
               <Menu as="div" className="relative ml-3">
                 <div>
                   <Menu.Button className="flex items-center space-x-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700">
-                      <User className="w-5 h-5" />
-                    </div>
+                    {user?.profileImage ? (
+                      <img
+                        src={user.profileImage}
+                        alt={user.name}
+                        className="w-8 h-8 rounded-full object-cover border border-indigo-200 dark:border-indigo-700"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700">
+                        <User className="w-5 h-5" />
+                      </div>
+                    )}
                     <span className="hidden lg:block">{user?.name}</span>
                   </Menu.Button>
                 </div>

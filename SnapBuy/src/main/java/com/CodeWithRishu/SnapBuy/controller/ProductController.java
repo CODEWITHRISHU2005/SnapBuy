@@ -55,12 +55,14 @@ public class ProductController {
     }
 
     @PostMapping("/generate-description")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<String> generateDescription(@RequestParam String name, @RequestParam String category) {
         String aiDesc = productService.generateDescription(name, category);
         return new ResponseEntity<>(aiDesc, HttpStatus.OK);
     }
 
     @PostMapping("/generate-image")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> generateImage(@RequestParam String name, @RequestParam String category, @RequestParam String description) {
         byte[] aiImage = productService.generateImage(name, category, description);
         return new ResponseEntity<>(aiImage, HttpStatus.OK);
@@ -83,6 +85,7 @@ public class ProductController {
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_USER')")
     public ResponseEntity<List<Product>> searchProducts(@RequestParam String keyword){
         List<Product> products = productService.searchProducts(keyword);
         log.info("searching with {}", keyword);

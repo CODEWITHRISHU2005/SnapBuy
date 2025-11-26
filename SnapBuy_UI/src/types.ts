@@ -8,14 +8,22 @@ export interface Product {
   imageData?: string;
 }
 
+export const Role = {
+  USER: 'USER',
+  ADMIN: 'ADMIN'
+} as const;
+
+export type Role = typeof Role[keyof typeof Role];
+
 export interface User {
   id: number;
   name: string;
   email: string;
   password?: string;
   phoneNumber?: string;
-  roles?: string;
+  roles?: Role[];
   userAddress?: Address;
+  profileImage?: string;
 }
 
 export interface AuthRequest {

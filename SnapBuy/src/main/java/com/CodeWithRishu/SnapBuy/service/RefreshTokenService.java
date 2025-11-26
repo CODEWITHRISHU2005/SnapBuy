@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -21,6 +22,7 @@ public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
 
+    @Transactional
     public RefreshToken createRefreshToken(String email) {
         log.info("Creating refresh token for user: {}", email);
         User user = userRepository.findByEmail(email)
@@ -30,10 +32,9 @@ public class RefreshTokenService {
                 });
 
         log.debug("Deleting old refresh token for user: {}", email);
-        refreshTokenRepository.findByUserInfo(user).ifPresent(existingToken -> {
-            log.debug("Old refresh token exists, deleting it for user: {}", email);
-            refreshTokenRepository.delete(existingToken);
-        });
+        refreshTokenRepository.deleteByUserInfo(user);
+
+        refreshTokenRepository.flush();
 
         RefreshToken refreshToken = RefreshToken.builder()
                 .userInfo(user)

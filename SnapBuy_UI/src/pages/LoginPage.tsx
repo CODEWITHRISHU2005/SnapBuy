@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ottAPI } from '../services/api';
-import { Package, Mail, Lock, User, ArrowRight, MapPin, CheckCircle2, AlertCircle, Sparkles, Phone } from 'lucide-react';
+import { Package, Mail, Lock, ArrowRight, MapPin, CheckCircle2, AlertCircle, Sparkles, Phone, Shield } from 'lucide-react';
 import type { Address } from '../types';
+import { Role } from '../types';
 import { decodeToken } from '../utils/jwt';
 
 const LoginPage: React.FC = () => {
@@ -20,7 +21,7 @@ const LoginPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [mounted, setMounted] = useState(false);
 
-  const [role, setRole] = useState('ROLE_USER');
+  const [adminKey, setAdminKey] = useState('');
   const [address, setAddress] = useState<Address>({
     street: '',
     city: '',
@@ -85,7 +86,7 @@ const LoginPage: React.FC = () => {
           email: username,
           password,
           phoneNumber,
-          roles: role,
+          roles: [adminKey === 'Rishabh@2005' ? Role.ADMIN : Role.USER],
           userAddress: address
         });
       }
@@ -358,31 +359,7 @@ const LoginPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="animate-slide-in-bottom delay-200">
-                      <label htmlFor="role" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                        Role
-                      </label>
-                      <div className="relative group input-glow">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
-                          <User className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
-                        </div>
-                        <select
-                          id="role"
-                          name="role"
-                          className="block w-full pl-12 pr-10 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700 appearance-none cursor-pointer"
-                          value={role}
-                          onChange={(e) => setRole(e.target.value)}
-                        >
-                          <option value="ROLE_USER">User</option>
-                          <option value="ROLE_ADMIN">Admin</option>
-                        </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
-                          <svg className="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
+
 
                     {/* Address Fields */}
                     <div className="animate-slide-in-bottom delay-300 space-y-4 pt-4 border-t-2 border-slate-200 dark:border-slate-700">
@@ -497,6 +474,28 @@ const LoginPage: React.FC = () => {
                     />
                   </div>
                 </div>
+
+                {!isLogin && (
+                  <div className="animate-slide-in-bottom delay-400">
+                    <label htmlFor="adminKey" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Admin Secret Key (Optional)
+                    </label>
+                    <div className="relative group input-glow">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
+                        <Shield className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
+                      </div>
+                      <input
+                        id="adminKey"
+                        name="adminKey"
+                        type="password"
+                        className="block w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
+                        placeholder="Enter admin key to register as admin"
+                        value={adminKey}
+                        onChange={(e) => setAdminKey(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {error && (

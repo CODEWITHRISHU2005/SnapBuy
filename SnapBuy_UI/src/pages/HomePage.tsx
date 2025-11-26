@@ -17,7 +17,6 @@ const HomePage: React.FC = () => {
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    // Prevent duplicate fetches in React Strict Mode
     if (!hasFetchedRef.current) {
       hasFetchedRef.current = true;
       fetchProducts();
@@ -33,6 +32,32 @@ const HomePage: React.FC = () => {
       console.error('Failed to fetch products:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const searchProducts = async (keyword: string) => {
+    try {
+      setLoading(true);
+      const response = await productAPI.search(keyword);
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Failed to search products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      searchProducts(searchQuery);
+    } else {
+      fetchProducts();
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
   };
 
@@ -60,11 +85,7 @@ const HomePage: React.FC = () => {
 
   const filteredProducts = products.filter(product => {
     const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
-    const matchesSearch = searchQuery === '' ||
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesCategory;
   });
 
   return (
@@ -129,17 +150,27 @@ const HomePage: React.FC = () => {
         <div className="sticky top-20 z-30 mb-12 animate-elastic-slide delay-300">
           <div className="glass-enhanced p-6 rounded-2xl shadow-2xl border border-white/60 dark:border-slate-700/50 backdrop-blur-xl hover:shadow-3xl transition-all duration-500">
             <div className="flex flex-col md:flex-row gap-5 items-center justify-between">
-              <div className="relative w-full md:w-96 group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors">
-                  <Search className="h-5 w-5" />
+              <div className="relative w-full md:flex-1 md:max-w-2xl group flex gap-2">
+                <div className="relative flex-1">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors">
+                    <Search className="h-5 w-5" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    className="block w-full pl-12 pr-4 py-3.5 bg-white/90 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600 font-medium input-glow shadow-sm"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  className="block w-full pl-12 pr-4 py-3.5 bg-white/90 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600 font-medium input-glow shadow-sm"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+                <button
+                  onClick={handleSearch}
+                  className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2 whitespace-nowrap border border-indigo-400/30"
+                >
+                  <Search className="h-5 w-5" />
+                  <span className="hidden sm:inline">Search</span>
+                </button>
               </div>
 
               <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
@@ -196,7 +227,7 @@ const HomePage: React.FC = () => {
               >
                 <div className="relative aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-700">
                   <img
-                    src={product.imageData || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80'}
+                    src={product.imageData ? `data:image/jpeg;base64,${product.imageData}` : 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80'}
                     alt={product.name}
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                   />
