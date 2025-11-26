@@ -1,43 +1,83 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { orderAPI } from '../services/api';
 import type { OrderResponse } from '../types';
+import { Role } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Package, Calendar, MapPin, DollarSign, Clock, CheckCircle2, Truck, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Package, Calendar, Clock, CheckCircle2, Truck, ShoppingBag, ArrowRight, User, Mail } from 'lucide-react';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  const isAdmin = useMemo(() => {
+    if (!user?.roles) return false;
+    const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+    return roles.some((role) => role === Role.ADMIN || role === `ROLE_${Role.ADMIN}`);
+  }, [user?.roles]);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
     fetchOrders();
-  }, [isAuthenticated, navigate]);
+  }, [authLoading, isAuthenticated, navigate, isAdmin, user?.id]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await orderAPI.getAll();
-      setOrders(response.data);
+      const allOrders = response.data || [];
+      const hasUserId = typeof user?.id === 'number' && user.id > 0;
+      const filteredOrders = isAdmin || !hasUserId
+        ? allOrders
+        : allOrders.filter((order) => order.userId === user?.id);
+      setOrders(filteredOrders);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
+      setError('Unable to load your orders right now. Please try again in a moment.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (authLoading) {
+    return null;
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-purple-50/20 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 flex flex-col items-center justify-center transition-colors duration-500">
         <div className="w-20 h-20 border-4 border-indigo-200 dark:border-indigo-900 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin mb-6"></div>
         <p className="text-slate-600 dark:text-slate-400 font-medium text-lg">Loading your orders...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-purple-50/20 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 flex flex-col items-center justify-center px-4 transition-colors duration-500">
+        <div className="text-center max-w-md">
+          <h2 className="text-3xl font-bold font-display text-slate-900 dark:text-white mb-4">Something went wrong</h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-6">{error}</p>
+          <button
+            onClick={fetchOrders}
+            className="px-8 py-3 bg-indigo-600 text-white rounded-full font-semibold shadow-lg hover:bg-indigo-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -115,7 +155,7 @@ const OrdersPage: React.FC = () => {
         <div className="space-y-6">
           {orders.map((order, index) => (
             <div
-              key={order.id}
+              key={order.orderId}
               className={`bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 animate-slide-in-bottom`}
               style={{ animationDelay: `${index * 100}ms` }}
             >
@@ -126,10 +166,10 @@ const OrdersPage: React.FC = () => {
                     <ShoppingBag className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Order #{order.id}</h3>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Order #{order.orderId}</h3>
                     <div className="flex items-center text-sm text-slate-600 dark:text-slate-400 mt-1">
                       <Calendar className="w-4 h-4 mr-1.5" />
-                      {new Date(order.createdAt).toLocaleDateString('en-US', {
+                      {new Date(order.orderDate).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -161,9 +201,12 @@ const OrdersPage: React.FC = () => {
                               <Package className="w-5 h-5" />
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-slate-900 dark:text-white">Product ID: {item.productId}</p>
+                              <p className="text-sm font-semibold text-slate-900 dark:text-white">{item.productName}</p>
                               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Quantity: {item.quantity}</p>
                             </div>
+                          </div>
+                          <div className="text-sm font-bold text-slate-900 dark:text-white">
+                            ${(item.totalPrice ?? 0).toFixed(2)}
                           </div>
                         </div>
                       ))}
@@ -174,26 +217,24 @@ const OrdersPage: React.FC = () => {
                   <div className="space-y-6">
                     <div>
                       <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Shipping Details
+                        <User className="w-4 h-4" />
+                        Customer Details
                       </h4>
-                      <div className="flex items-start text-sm text-slate-600 dark:text-slate-400 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
-                        <MapPin className="w-5 h-5 mr-3 mt-0.5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">{order.shippingAddress.street}</p>
-                          <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}</p>
-                          <p>{order.shippingAddress.country}</p>
+                      <div className="space-y-3">
+                        <div className="flex items-start text-sm text-slate-600 dark:text-slate-400 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                          <User className="w-5 h-5 mr-3 mt-0.5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-white">{order.customerName}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">User ID: {order.userId}</p>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-6 border-t-2 border-slate-200 dark:border-slate-700">
-                      <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl">
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Total Amount</span>
-                        <span className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent flex items-center">
-                          <DollarSign className="w-6 h-6 mr-1 text-indigo-600 dark:text-indigo-400" />
-                          {order.totalAmount.toFixed(2)}
-                        </span>
+                        <div className="flex items-start text-sm text-slate-600 dark:text-slate-400 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                          <Mail className="w-5 h-5 mr-3 mt-0.5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-white">{order.email}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Email associated with this order</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

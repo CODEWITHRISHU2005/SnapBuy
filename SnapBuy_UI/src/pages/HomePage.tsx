@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { productAPI } from '../services/api';
 import type { Product } from '../types';
 import { Search, ShoppingCart, ArrowRight, Sparkles } from 'lucide-react';
@@ -13,8 +13,21 @@ const HomePage: React.FC = () => {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeCategory, setActiveCategory] = useState('All');
   const hasFetchedRef = useRef(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchSectionRef = useRef<HTMLDivElement>(null);
+
+  const focusSearchBar = () => {
+    if (searchSectionRef.current) {
+      searchSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+      searchInputRef.current.select();
+    }
+  };
 
   useEffect(() => {
     if (!hasFetchedRef.current) {
@@ -22,6 +35,14 @@ const HomePage: React.FC = () => {
       fetchProducts();
     }
   }, []);
+
+  useEffect(() => {
+    const state = location.state as { focusSearch?: number } | null;
+    if (state?.focusSearch) {
+      focusSearchBar();
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location, navigate]);
 
   const fetchProducts = async () => {
     try {
@@ -147,7 +168,7 @@ const HomePage: React.FC = () => {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Search and Filter Bar */}
-        <div className="sticky top-20 z-30 mb-12 animate-elastic-slide delay-300">
+        <div ref={searchSectionRef} className="sticky top-20 z-30 mb-12 animate-elastic-slide delay-300">
           <div className="glass-enhanced p-6 rounded-2xl shadow-2xl border border-white/60 dark:border-slate-700/50 backdrop-blur-xl hover:shadow-3xl transition-all duration-500">
             <div className="flex flex-col md:flex-row gap-5 items-center justify-between">
               <div className="relative w-full md:flex-1 md:max-w-2xl group flex gap-2">
@@ -156,6 +177,7 @@ const HomePage: React.FC = () => {
                     <Search className="h-5 w-5" />
                   </div>
                   <input
+                    ref={searchInputRef}
                     type="text"
                     placeholder="Search products..."
                     className="block w-full pl-12 pr-4 py-3.5 bg-white/90 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600 font-medium input-glow shadow-sm"
@@ -258,7 +280,7 @@ const HomePage: React.FC = () => {
                   <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2 mb-4 h-10">
                     {product.description}
                   </p>
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                  <div className="flex items-center justify-between pt-4 mb-4 border-t border-slate-100 dark:border-slate-700">
                     <div className="flex items-center text-slate-400 dark:text-slate-500 text-xs font-semibold">
                       <span className={`w-2.5 h-2.5 rounded-full mr-2 ${product.stockQuantity > 0 ? 'bg-green-500 animate-pulse-slow' : 'bg-red-500'}`}></span>
                       {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
@@ -267,6 +289,20 @@ const HomePage: React.FC = () => {
                       {'★'.repeat(5)}
                     </div>
                   </div>
+
+                  {/* Add to Cart Button */}
+                  <button
+                    id={`add-to-cart-btn-${product.id}`}
+                    onClick={() => handleAddToCart(product)}
+                    disabled={product.stockQuantity === 0}
+                    className={`w-full py-3 px-6 rounded-xl font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${product.stockQuantity > 0
+                        ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 border border-indigo-400/30'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                      }`}
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    {product.stockQuantity > 0 ? 'Add to Cart' : 'Out of Stock'}
+                  </button>
                 </div>
               </div>
             ))}

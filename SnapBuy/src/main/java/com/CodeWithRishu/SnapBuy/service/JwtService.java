@@ -76,6 +76,7 @@ public class JwtService {
         claims.put("roles", user.getRoles().stream()
                 .map(Enum::name)
                 .collect(Collectors.toList()));
+        claims.put("userId", user.getId());
         claims.put("name", user.getName());
         claims.put("email", user.getEmail());
         claims.put("profileImage", user.getProfileImage());

@@ -21,6 +21,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const parseUserId = (value: unknown): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
@@ -31,7 +36,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         const userData: User = {
           ...storedUser,
-          id: decodedToken.id || storedUser.id || 0,
+          id: parseUserId(decodedToken.id ?? storedUser.id),
           name: decodedToken.sub || storedUser.name || '',
           email: decodedToken.email || storedUser.email || '',
           roles: decodedToken.roles || '',
@@ -58,7 +63,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('Decoded Token:', decodedToken);
 
       const userData: User = {
-        id: decodedToken.id || 0,
+        id: parseUserId(decodedToken.id),
         name: decodedToken.sub || credentials.email,
         email: decodedToken.email || credentials.email,
         roles: decodedToken.roles || '',
@@ -112,7 +117,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('Google Login - Decoded Token:', decodedToken);
 
       const userData: User = {
-        id: decodedToken.id || 0,
+        id: parseUserId(decodedToken.id),
         name: decodedToken.sub || '',
         email: decodedToken.email || '',
         roles: decodedToken.roles || '',
@@ -144,7 +149,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         const userData: User = {
           ...storedUser,
-          id: decodedToken.id || storedUser.id || 0,
+          id: parseUserId(decodedToken.id ?? storedUser.id),
           name: decodedToken.sub || storedUser.name || '',
           email: decodedToken.email || storedUser.email || '',
           roles: decodedToken.roles || storedUser.roles || '',

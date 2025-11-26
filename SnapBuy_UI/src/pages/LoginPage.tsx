@@ -140,6 +140,7 @@ const LoginPage: React.FC = () => {
         name: decodedToken.sub || '',
         email: decodedToken.email || '',
         roles: decodedToken.roles || '',
+        profileImage: decodedToken.profileImage || decodedToken.picture || '',
       };
       localStorage.setItem('user', JSON.stringify(userData));
 

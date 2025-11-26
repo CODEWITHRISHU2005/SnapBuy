@@ -1,5 +1,14 @@
 import axios from 'axios';
-import type { AuthRequest, JwtResponse, Product, User, OrderRequest, OrderResponse } from '../types';
+import type {
+  AuthRequest,
+  JwtResponse,
+  Product,
+  User,
+  OrderRequest,
+  OrderResponse,
+  StripeRequest,
+  StripeResponse,
+} from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -70,6 +79,10 @@ export const productAPI = {
 export const orderAPI = {
   place: (order: OrderRequest) => api.post<OrderResponse>('/orders/place', order),
   getAll: () => api.get<OrderResponse[]>('/orders/allOrders'),
+};
+
+export const paymentAPI = {
+  initiateStripe: (payload: StripeRequest) => api.post<StripeResponse>('/payments/stripe', payload),
 };
 
 export const chatAPI = {

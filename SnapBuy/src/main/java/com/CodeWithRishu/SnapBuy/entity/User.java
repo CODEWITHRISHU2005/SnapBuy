@@ -28,7 +28,7 @@ public class User extends AuditEntity {
     @JsonIgnore
     private int id;
 
-    @Column(name = "user_name", unique = true, nullable = false)
+    @Column(nullable = false)
     private String name;
 
     @Column(nullable = false, unique = true)

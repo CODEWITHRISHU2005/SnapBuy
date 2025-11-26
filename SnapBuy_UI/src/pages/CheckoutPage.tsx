@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderAPI } from '../services/api';
-import type { Address } from '../types';
-import { CreditCard, MapPin, Truck, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { orderAPI, paymentAPI } from '../services/api';
+import type { Address, OrderRequest, StripeRequest } from '../types';
+import { CreditCard, MapPin, Truck, CheckCircle2, AlertCircle, Sparkles, Wallet } from 'lucide-react';
 
 const CheckoutPage: React.FC = () => {
   const { cart, getTotalPrice, clearCart } = useCart();
@@ -19,8 +19,18 @@ const CheckoutPage: React.FC = () => {
     city: '',
     state: '',
     zipCode: '',
-    country: 'USA',
+    country: '',
   });
+  const [customerName, setCustomerName] = useState(user?.name ?? '');
+  const [customerEmail, setCustomerEmail] = useState(user?.email ?? '');
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'cod'>('stripe');
+
+  useEffect(() => {
+    if (user) {
+      setCustomerName((prev) => (prev ? prev : user.name ?? ''));
+      setCustomerEmail((prev) => (prev ? prev : user.email ?? ''));
+    }
+  }, [user]);
 
   useEffect(() => {
     setMounted(true);
@@ -42,17 +52,49 @@ const CheckoutPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const orderRequest = {
-        userId: user!.id,
+      const orderRequest: OrderRequest = {
+        customerName: customerName.trim(),
+        email: customerEmail.trim(),
         items: cart.map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
         })),
-        shippingAddress: address,
       };
 
       await orderAPI.place(orderRequest);
-      clearCart();
+
+      const totalAmountInCents = Math.round(getTotalPrice() * 100);
+      const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
+
+      if (paymentMethod === 'stripe') {
+        let redirectUrl: string | undefined;
+
+        if (totalAmountInCents > 0 && totalQuantity > 0) {
+          const stripeRequest: StripeRequest = {
+            productName: `SnapBuy Order for ${customerName || 'customer'}`,
+            quantity: totalQuantity,
+            amount: totalAmountInCents,
+            currency: 'usd',
+          };
+
+          const stripeResponse = await paymentAPI.initiateStripe(stripeRequest);
+          redirectUrl = stripeResponse.data.sessionUrl || stripeResponse.data.url;
+        } else {
+          console.warn('Skipping Stripe payment because amount or quantity is invalid.');
+        }
+
+        clearCart();
+
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+          return;
+        }
+      } else {
+        clearCart();
+        navigate('/orders');
+        return;
+      }
+
       navigate('/orders');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to place order. Please try again.');
@@ -82,10 +124,38 @@ const CheckoutPage: React.FC = () => {
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mr-4 shadow-lg">
                   <MapPin className="w-6 h-6" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Shipping Address</h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Customer & Shipping Details</h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Enter who we should contact about this delivery</p>
+                </div>
               </div>
 
               <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="animate-slide-in-bottom">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="block w-full px-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700 input-glow"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+                  <div className="animate-slide-in-bottom delay-100">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      className="block w-full px-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700 input-glow"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                </div>
+
                 <div className="animate-slide-in-bottom">
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Street Address</label>
                   <input
@@ -94,7 +164,7 @@ const CheckoutPage: React.FC = () => {
                     value={address.street}
                     onChange={(e) => setAddress({ ...address, street: e.target.value })}
                     className="block w-full px-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700 input-glow"
-                    placeholder="123 Main St"
+                    placeholder="Enter street address"
                   />
                 </div>
 
@@ -107,7 +177,7 @@ const CheckoutPage: React.FC = () => {
                       value={address.city}
                       onChange={(e) => setAddress({ ...address, city: e.target.value })}
                       className="block w-full px-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700 input-glow"
-                      placeholder="New York"
+                      placeholder="Enter city name"
                     />
                   </div>
 
@@ -119,7 +189,7 @@ const CheckoutPage: React.FC = () => {
                       value={address.state}
                       onChange={(e) => setAddress({ ...address, state: e.target.value })}
                       className="block w-full px-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700 input-glow"
-                      placeholder="NY"
+                      placeholder="Enter state name"
                     />
                   </div>
                 </div>
@@ -133,7 +203,7 @@ const CheckoutPage: React.FC = () => {
                       value={address.zipCode}
                       onChange={(e) => setAddress({ ...address, zipCode: e.target.value })}
                       className="block w-full px-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700 input-glow"
-                      placeholder="10001"
+                      placeholder="Enter pin code"
                     />
                   </div>
 
@@ -145,7 +215,7 @@ const CheckoutPage: React.FC = () => {
                       value={address.country}
                       onChange={(e) => setAddress({ ...address, country: e.target.value })}
                       className="block w-full px-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700 input-glow"
-                      placeholder="USA"
+                      placeholder="Enter country name"
                     />
                   </div>
                 </div>
@@ -157,17 +227,80 @@ const CheckoutPage: React.FC = () => {
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mr-4 shadow-lg">
                   <CreditCard className="w-6 h-6" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Payment Method</h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Payment Method</h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Choose how you want to pay</p>
+                </div>
               </div>
 
-              <div className="p-5 border-2 border-indigo-200 dark:border-indigo-800 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl flex items-center hover:border-indigo-300 dark:hover:border-indigo-700 transition-all duration-300">
-                <div className="w-6 h-6 rounded-full border-2 border-indigo-600 dark:border-indigo-400 flex items-center justify-center mr-4 flex-shrink-0">
-                  <div className="w-3 h-3 rounded-full bg-indigo-600 dark:bg-indigo-400"></div>
-                </div>
-                <div className="flex-1">
-                  <span className="font-bold text-slate-900 dark:text-white block">Cash on Delivery</span>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">Pay when you receive</span>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('stripe')}
+                  className={`p-5 rounded-2xl text-left border-2 transition-all duration-300 focus:outline-none ${
+                    paymentMethod === 'stripe'
+                      ? 'border-indigo-500 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 dark:from-indigo-900/40 dark:to-purple-900/40 shadow-lg shadow-indigo-500/20'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">Stripe Checkout</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Pay securely online</p>
+                      </div>
+                    </div>
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        paymentMethod === 'stripe'
+                          ? 'border-indigo-600 bg-indigo-600'
+                          : 'border-slate-300 dark:border-slate-500'
+                      }`}
+                    >
+                      {paymentMethod === 'stripe' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    You’ll be redirected to Stripe to complete the payment.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('cod')}
+                  className={`p-5 rounded-2xl text-left border-2 transition-all duration-300 focus:outline-none ${
+                    paymentMethod === 'cod'
+                      ? 'border-indigo-500 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 dark:from-indigo-900/40 dark:to-purple-900/40 shadow-lg shadow-indigo-500/20'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-300">
+                        <Wallet className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">Cash on Delivery</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Pay when your order arrives</p>
+                      </div>
+                    </div>
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        paymentMethod === 'cod'
+                          ? 'border-indigo-600 bg-indigo-600'
+                          : 'border-slate-300 dark:border-slate-500'
+                      }`}
+                    >
+                      {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Pay the delivery partner in cash or card at your doorstep.
+                  </p>
+                </button>
               </div>
             </div>
           </div>
@@ -242,7 +375,7 @@ const CheckoutPage: React.FC = () => {
                   <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin relative z-10" />
                 ) : (
                   <span className="relative z-10 flex items-center">
-                    Place Order
+                    {paymentMethod === 'stripe' ? 'Pay with Stripe' : 'Place Order'}
                     <CheckCircle2 className="ml-2 w-5 h-5" />
                   </span>
                 )}

@@ -115,14 +115,14 @@ public class OttService {
             throw new IllegalArgumentException("Token expired, please request a new one.");
         }
 
-        String userName = ottToken.getUser().getName();
+        String email = ottToken.getUser().getEmail();
         String jwt = jwtService.generateToken(ottToken.getUser());
-        log.debug("Generated JWT for user: {}", userName);
-        log.info("Generated JWT for user: {}", userName);
+        log.debug("Generated JWT for user: {}", email);
+        log.info("Generated JWT for user: {}", email);
 
         return JwtResponse.builder()
                 .accessToken(jwt)
-                .refreshToken(refreshTokenService.createRefreshToken(userName).getToken())
+                .refreshToken(refreshTokenService.createRefreshToken(email).getToken())
                 .build();
     }
 }

@@ -1,7 +1,6 @@
 package com.CodeWithRishu.SnapBuy.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
 import lombok.*;
 import org.hibernate.annotations.SoftDelete;
 
@@ -22,14 +21,12 @@ public class OrderItem extends AuditEntity {
     private Long id;
 
     @Column(nullable = false)
-    @Min(value = 0, message = "Quantity must be greater than or equal to 0")
     private int quantity;
 
     @Column(nullable = false)
     private String productName;
 
     @Column(nullable = false)
-    @Min(value = 0, message = "Price must be greater than or equal to 0")
     private BigDecimal totalPrice;
 
     @ManyToOne(fetch = FetchType.LAZY)

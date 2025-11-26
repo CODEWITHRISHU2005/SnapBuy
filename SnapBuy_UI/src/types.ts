@@ -41,15 +41,15 @@ export interface CartItem {
   quantity: number;
 }
 
-export interface OrderItem {
+export interface OrderItemRequest {
   productId: number;
   quantity: number;
 }
 
 export interface OrderRequest {
-  userId: number;
-  items: OrderItem[];
-  shippingAddress: Address;
+  customerName: string;
+  email: string;
+  items: OrderItemRequest[];
 }
 
 export interface Address {
@@ -60,12 +60,33 @@ export interface Address {
   country: string;
 }
 
+export interface OrderItemResponse {
+  productName: string;
+  quantity: number;
+  totalPrice: number;
+}
+
 export interface OrderResponse {
-  id: number;
+  orderId: string;
   userId: number;
-  items: OrderItem[];
-  totalAmount: number;
+  customerName: string;
+  email: string;
   status: string;
-  shippingAddress: Address;
-  createdAt: string;
+  orderDate: string;
+  items: OrderItemResponse[];
+}
+
+export interface StripeRequest {
+  productName: string;
+  quantity: number;
+  amount: number;
+  currency: string;
+}
+
+export interface StripeResponse {
+  sessionId?: string;
+  sessionUrl?: string;
+  message?: string;
+  url?: string;
+  status?: string;
 }
