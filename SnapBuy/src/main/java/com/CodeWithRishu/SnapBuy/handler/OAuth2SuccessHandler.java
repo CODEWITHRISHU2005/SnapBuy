@@ -79,7 +79,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         return userRepository.findByEmail(email).map(existingUser -> {
             existingUser.setName(name);
-            existingUser.setProfileImage(image);
+            existingUser.setProfileImage(image.getBytes());
             existingUser.setProvider(Provider.valueOf(registrationId.toUpperCase()));
             return userRepository.save(existingUser);
         }).orElseGet(() -> {
@@ -87,10 +87,11 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                     .email(email)
                     .name(name)
                     .provider(Provider.GOOGLE)
-                    .profileImage(image)
+                    .profileImage(image.getBytes())
                     .roles(Set.of(Role.USER))
                     .build();
             return userRepository.save(newUser);
         });
     }
+
 }

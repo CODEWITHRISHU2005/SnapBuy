@@ -9,6 +9,33 @@ import type {
   StripeRequest,
   StripeResponse,
 } from '../types';
+const getStoredToken = (key: string) => {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn(`Unable to read ${key} from localStorage`, error);
+    return null;
+  }
+};
+
+const setStoredToken = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    console.error(`Unable to write ${key} to localStorage`, error);
+    return false;
+  }
+};
+
+const clearAuthTokens = () => {
+  try {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+  } catch (error) {
+    console.warn('Unable to clear auth tokens from localStorage', error);
+  }
+};
 
 const API_BASE_URL = '/api';
 
@@ -20,9 +47,12 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
+  const token = getStoredToken('accessToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else if (getStoredToken('refreshToken')) {
+    clearAuthTokens();
+    window.location.href = '/login';
   }
   return config;
 });
@@ -34,16 +64,23 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
+        const refreshToken = getStoredToken('refreshToken');
         const response = await axios.post(`${API_BASE_URL}/auth/refreshToken`, {
           token: refreshToken,
         });
         const { accessToken } = response.data;
-        localStorage.setItem('accessToken', accessToken);
+
+        const stored = accessToken ? setStoredToken('accessToken', accessToken) : false;
+        if (!stored) {
+          clearAuthTokens();
+          window.location.href = '/login';
+          return Promise.reject(new Error('Unable to persist refreshed access token'));
+        }
+
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (err) {
-        localStorage.clear();
+        clearAuthTokens();
         window.location.href = '/login';
         return Promise.reject(err);
       }
@@ -71,7 +108,7 @@ export const productAPI = {
   delete: (id: number) => api.delete(`/products/${id}`),
   getImage: (id: number) => api.get<Blob>(`/products/${id}/image`, { responseType: 'blob' }),
   generateDescription: (name: string, category: string) =>
-    api.post<string>(`/products/generate-description?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}`),
+    api.post<string>(`/products/generate-description?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}`, {}),
   generateImage: (name: string, category: string, description: string) =>
     api.post<Blob>(`/products/generate-image?name=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}&description=${encodeURIComponent(description)}`, null, { responseType: 'blob' }),
 };

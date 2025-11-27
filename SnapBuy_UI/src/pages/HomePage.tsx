@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { productAPI } from '../services/api';
 import type { Product } from '../types';
-import { Search, ShoppingCart, ArrowRight, Sparkles } from 'lucide-react';
+import { Search, ShoppingCart, ArrowRight, Sparkles, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,12 +10,18 @@ const HomePage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Pagination and Sorting State
+  const [page, setPage] = useState(0);
+  const [size] = useState(12);
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [totalPages, setTotalPages] = useState(0);
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeCategory, setActiveCategory] = useState('All');
-  const hasFetchedRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchSectionRef = useRef<HTMLDivElement>(null);
 
@@ -30,10 +36,14 @@ const HomePage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!hasFetchedRef.current) {
-      hasFetchedRef.current = true;
+    if (!searchQuery) {
       fetchProducts();
     }
+  }, [page, size, sortBy, sortDirection, activeCategory]);
+
+  useEffect(() => {
+    // Initial fetch handled by the dependency array above if searchQuery is empty
+    // If we want to ensure it runs on mount regardless, the above covers it since initial state is set.
   }, []);
 
   useEffect(() => {
@@ -47,8 +57,15 @@ const HomePage: React.FC = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await productAPI.getAll();
-      setProducts(response.data);
+      if (activeCategory === 'All') {
+        const response = await productAPI.getPaginated(page, size, sortBy, sortDirection);
+        setProducts(response.data.content);
+        setTotalPages(response.data.totalPages);
+      } else {
+        const response = await productAPI.getAll();
+        setProducts(response.data);
+        setTotalPages(0); // Hide pagination for specific categories as API doesn't support it yet
+      }
     } catch (error) {
       console.error('Failed to fetch products:', error);
     } finally {
@@ -72,6 +89,7 @@ const HomePage: React.FC = () => {
     if (searchQuery.trim()) {
       searchProducts(searchQuery);
     } else {
+      setPage(0); // Reset to first page when clearing search
       fetchProducts();
     }
   };
@@ -102,7 +120,7 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const categories = ['All', 'Electronics', 'Fashion', 'Home', 'Lifestyle'];
+  const categories = ['All', 'Mobile & Accessories', 'TVs & Appliances', 'Lifestyle', 'Home & Furnitures'];
 
   const filteredProducts = products.filter(product => {
     const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
@@ -199,7 +217,7 @@ const HomePage: React.FC = () => {
                 {categories.map((category) => (
                   <button
                     key={category}
-                    onClick={() => setActiveCategory(category)}
+                    onClick={() => { setActiveCategory(category); setPage(0); }}
                     className={`px-6 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 shadow-md hover:shadow-lg ${activeCategory === category
                       ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-xl shadow-indigo-500/50 scale-105 border border-indigo-400/30'
                       : 'bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 hover:text-indigo-600 dark:hover:text-indigo-400 border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700 hover:scale-105'
@@ -208,6 +226,34 @@ const HomePage: React.FC = () => {
                     {category}
                   </button>
                 ))}
+              </div>
+
+              {/* Sorting Controls */}
+              <div className="flex items-center gap-4 mt-4 md:mt-0">
+                <div className="relative group">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="appearance-none bg-white/90 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 pr-8 text-slate-700 dark:text-slate-200 font-bold focus:outline-none focus:border-indigo-500 transition-all cursor-pointer hover:border-indigo-300"
+                  >
+                    <option value="name">Name</option>
+                    <option value="price">Price</option>
+                    <option value="category">Category</option>
+                  </select>
+                  <ArrowUpDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+
+                <button
+                  onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+                  className="p-2 rounded-xl bg-white/90 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-indigo-500 hover:text-indigo-500 transition-all"
+                  title={`Sort ${sortDirection === 'asc' ? 'Descending' : 'Ascending'}`}
+                >
+                  {sortDirection === 'asc' ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 16 4 4 4-4" /><path d="M7 20V4" /><path d="M11 4h4" /><path d="M11 8h7" /><path d="M11 12h10" /></svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 8 4-4 4 4" /><path d="M7 4v16" /><path d="M11 12h10" /><path d="M11 8h7" /><path d="M11 4h4" /></svg>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -296,8 +342,8 @@ const HomePage: React.FC = () => {
                     onClick={() => handleAddToCart(product)}
                     disabled={product.stockQuantity === 0}
                     className={`w-full py-3 px-6 rounded-xl font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${product.stockQuantity > 0
-                        ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 border border-indigo-400/30'
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                      ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 border border-indigo-400/30'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
                       }`}
                   >
                     <ShoppingCart className="w-4 h-4" />
@@ -306,6 +352,51 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && !searchQuery && totalPages > 1 && (
+          <div className="mt-12 flex justify-center items-center gap-4 animate-fade-in">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum = page + 1 - 2 + i;
+                if (page < 2) pageNum = i + 1;
+                if (page > totalPages - 3) pageNum = totalPages - 4 + i;
+
+                if (pageNum > 0 && pageNum <= totalPages) {
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum - 1)}
+                      className={`w-10 h-10 rounded-xl font-bold transition-all ${page === pageNum - 1
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 scale-110'
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-500'
+                        }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                }
+                return null;
+              })}
+            </div>
+
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page === totalPages - 1}
+              className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            </button>
           </div>
         )}
       </div>

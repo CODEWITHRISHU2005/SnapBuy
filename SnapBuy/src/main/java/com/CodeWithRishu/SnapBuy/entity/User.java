@@ -36,7 +36,11 @@ public class User extends AuditEntity {
 
     private String password;
 
-    private String profileImage;
+    @Lob
+    private byte[] profileImage;
+
+    @Transient
+    private String adminKey;
 
     @Enumerated(EnumType.STRING)
     @JsonIgnore

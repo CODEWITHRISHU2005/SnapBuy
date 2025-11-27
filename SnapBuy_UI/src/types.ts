@@ -19,11 +19,11 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  profileImage?: string;
   password?: string;
-  phoneNumber?: string;
+  adminKey?: string;
   roles?: Role[];
   userAddress?: Address;
-  profileImage?: string;
 }
 
 export interface AuthRequest {
@@ -56,8 +56,9 @@ export interface Address {
   street: string;
   city: string;
   state: string;
-  zipCode: string;
+  pinCode: string;
   country: string;
+  phoneNumber: string;
 }
 
 export interface OrderItemResponse {

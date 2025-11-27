@@ -69,7 +69,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     log.warn("Token validation failed for user: {}", username);
                 }
             } else {
-                log.info("Username is null or authentication already exists");
+                log.info("Authentication already exists");
             }
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
             log.error("JWT token is expired", e);
@@ -84,4 +84,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
+
 }

@@ -1,9 +1,8 @@
 package com.CodeWithRishu.SnapBuy.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 import lombok.*;
-
-import java.math.BigInteger;
 
 @Embeddable
 @Getter
@@ -19,10 +18,11 @@ public class Address {
     private String state;
 
     @Column(name = "pin_code")
-    private int pinCode;
+    private String pinCode;
 
     private String country;
 
     @Column(name = "phone_number")
-    private BigInteger phoneNumber;
+    private String phoneNumber;
+
 }

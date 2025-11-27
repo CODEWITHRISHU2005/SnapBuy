@@ -26,17 +26,12 @@ public class Product extends AuditEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @NotBlank(message = "Product name cannot be blank")
-    @Size(min = 3, max = 50, message = "Name must be between 3 and 50 characters")
     private String name;
 
-    @NotBlank(message = "Description cannot be blank")
     private String description;
 
-    @NotBlank(message = "Brand cannot be blank")
     private String brand;
 
-    @Min(value = 1, message = "Price must be at least 1")
     private BigDecimal price;
 
     private String category;
@@ -46,7 +41,6 @@ public class Product extends AuditEntity {
 
     private boolean productAvailable;
 
-    @Min(value = 0, message = "Stock quantity cannot be negative")
     private int stockQuantity;
 
     @Column(name = "image_name")

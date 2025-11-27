@@ -2,7 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { decodeToken } from '../utils/jwt';
+import { resolveProfileImage } from '../utils/profileImage';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+const clearAuthTokens = () => {
+  try {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+  } catch (error) {
+    console.warn('Unable to clear auth tokens from localStorage', error);
+  }
+};
+
+const storeAuthTokens = (accessToken: string, refreshToken: string) => {
+  try {
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+    return true;
+  } catch (error) {
+    console.error('Unable to store OAuth tokens', error);
+    clearAuthTokens();
+    return false;
+  }
+};
 
 const OAuth2Callback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -35,9 +56,15 @@ const OAuth2Callback: React.FC = () => {
           return;
         }
 
-        // Store tokens in localStorage
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
+        // Store tokens safely in localStorage
+        const stored = storeAuthTokens(accessToken, refreshToken);
+
+        if (!stored) {
+          setStatus('error');
+          setMessage('Unable to store authentication tokens. Please try again.');
+          setTimeout(() => navigate('/login'), 3000);
+          return;
+        }
 
         // Decode token to get user information
         const decodedToken = decodeToken(accessToken);
@@ -48,7 +75,7 @@ const OAuth2Callback: React.FC = () => {
           name: decodedToken.sub || '',
           email: decodedToken.email || '',
           roles: decodedToken.roles || '',
-          profileImage: decodedToken.profileImage || decodedToken.picture || '',
+          profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture),
         };
 
         // Store user data
@@ -65,6 +92,7 @@ const OAuth2Callback: React.FC = () => {
         setTimeout(() => navigate('/'), 1500);
       } catch (error) {
         console.error('OAuth2 callback error:', error);
+        clearAuthTokens();
         setStatus('error');
         setMessage('An error occurred during login. Please try again.');
         setTimeout(() => navigate('/login'), 3000);

@@ -16,6 +16,7 @@ import java.util.Map;
 
 @Service
 public class ChatService {
+
     private final ResourceLoader resourceLoader;
     private final PgVectorStore vectorStore;
     private final ChatClient chatClient;
@@ -71,4 +72,5 @@ public class ChatService {
         }
         return context.toString();
     }
+
 }

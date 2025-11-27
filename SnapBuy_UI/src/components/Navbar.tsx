@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
-import { ShoppingCart, User, LogOut, Package, Plus, Menu as MenuIcon, X, Sun, Moon, Search } from 'lucide-react';
+import { ShoppingCart, User, LogOut, Package, Plus, Menu as MenuIcon, X, Sun, Moon, Search, Shield } from 'lucide-react';
 import { Menu, Transition } from '@headlessui/react';
 
 const Navbar: React.FC = () => {
@@ -136,17 +136,20 @@ const Navbar: React.FC = () => {
               <Menu as="div" className="relative ml-3">
                 <div>
                   <Menu.Button className="group flex items-center gap-3 px-3 py-1.5 rounded-full border border-white/10 hover:border-white/30 text-left transition-all duration-300 focus:outline-none hover:bg-white/5">
-                    {user?.profileImage ? (
+                    {user?.profileImage && user.profileImage.trim() !== '' ? (
                       <img
                         src={user.profileImage}
                         alt={user.name}
                         className="w-9 h-9 rounded-full object-cover border border-white/20 shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
                       />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white border border-white/20 shadow-[0_8px_20px_rgba(0,0,0,0.4)]">
-                        <User className="w-5 h-5 text-white" />
-                      </div>
-                    )}
+                    ) : null}
+                    <div className={user?.profileImage && user.profileImage.trim() !== '' ? 'hidden' : 'w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white border border-white/20 shadow-[0_8px_20px_rgba(0,0,0,0.4)]'}>
+                      <User className="w-5 h-5 text-white" />
+                    </div>
                     <div className="hidden lg:flex flex-col max-w-[180px]">
                       <span className="text-sm font-semibold text-white leading-tight">{user?.name}</span>
                       <span className="text-xs text-slate-400 truncate leading-tight mt-1">{user?.email}</span>
@@ -155,54 +158,117 @@ const Navbar: React.FC = () => {
                 </div>
                 <Transition
                   as={Fragment}
-                  enter="transition ease-out duration-100"
-                  enterFrom="transform opacity-0 scale-95"
-                  enterTo="transform opacity-100 scale-100"
-                  leave="transition ease-in duration-75"
-                  leaveFrom="transform opacity-100 scale-100"
-                  leaveTo="transform opacity-0 scale-95"
+                  enter="transition ease-out duration-120"
+                  enterFrom="transform opacity-0 scale-95 translate-y-1"
+                  enterTo="transform opacity-100 scale-100 translate-y-0"
+                  leave="transition ease-in duration-100"
+                  leaveFrom="transform opacity-100 scale-100 translate-y-0"
+                  leaveTo="transform opacity-0 scale-95 translate-y-1"
                 >
-                  <Menu.Items className="absolute right-0 mt-3 w-64 origin-top-right bg-slate-900/95 border border-white/10 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.65)] backdrop-blur-xl focus:outline-none p-3 space-y-3">
-                    <div className="flex items-center gap-4 px-3 py-2 rounded-2xl bg-white/5 border border-white/5">
-                      {user?.profileImage ? (
-                        <img src={user.profileImage} alt={user.name} className="w-12 h-12 rounded-full object-cover border border-white/20" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white border border-white/10">
-                          <User className="w-6 h-6 text-white" />
-                        </div>
-                      )}
+                  <Menu.Items className="absolute right-0 mt-3 w-72 max-w-xs origin-top-right rounded-2xl bg-gradient-to-br from-slate-950/95 via-slate-900/95 to-slate-950/95 border border-white/10 shadow-[0_18px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl focus:outline-none overflow-hidden">
+                    {/* User info header */}
+                    <div className="flex items-center gap-3 px-4 py-3.5">
+                      {user?.profileImage && user.profileImage.trim() !== '' ? (
+                        <img
+                          src={user.profileImage}
+                          alt={user.name}
+                          className="w-11 h-11 rounded-full object-cover border border-white/20"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <div className={user?.profileImage && user.profileImage.trim() !== '' ? 'hidden' : 'w-11 h-11 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white border border-white/20'}>
+                        <User className="w-5 h-5 text-white" />
+                      </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
-                        <p className="text-xs text-slate-300 truncate mt-1">{user?.email}</p>
+                        <p className="text-sm font-semibold text-white leading-snug truncate">
+                          {user?.name}
+                        </p>
+                        <p className="text-xs text-slate-400 leading-snug truncate mt-0.5">
+                          {user?.email}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="px-1 py-1">
+                    {/* Divider */}
+                    <div className="mx-4 h-px bg-gradient-to-r from-transparent via-slate-700/70 to-transparent" />
+
+                    {/* Menu items */}
+                    <div className="py-1.5">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <Link
+                            to="/profile"
+                            className={`group flex items-center w-full px-4 py-3 text-sm ${
+                              active ? 'bg-white/6 text-white scale-[1.02]' : 'text-slate-200'
+                            } transition-all duration-150 ease-out`}
+                          >
+                            <span className="inline-flex items-center justify-center w-8">
+                              <User className="w-4 h-4 text-slate-300 group-hover:text-white" />
+                            </span>
+                            <span className="ml-1">Profile</span>
+                          </Link>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <Link
+                            to="/settings"
+                            className={`group flex items-center w-full px-4 py-3 text-sm ${
+                              active ? 'bg-white/6 text-white scale-[1.02]' : 'text-slate-200'
+                            } transition-all duration-150 ease-out`}
+                          >
+                            <span className="inline-flex items-center justify-center w-8">
+                              <Shield className="w-4 h-4 text-slate-300 group-hover:text-white" />
+                            </span>
+                            <span className="ml-1">Settings</span>
+                          </Link>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <Link
+                            to="/cart"
+                            className={`group flex items-center w-full px-4 py-3 text-sm ${
+                              active ? 'bg-white/6 text-white scale-[1.02]' : 'text-slate-200'
+                            } transition-all duration-150 ease-out`}
+                          >
+                            <span className="inline-flex items-center justify-center w-8">
+                              <ShoppingCart className="w-4 h-4 text-slate-300 group-hover:text-white" />
+                            </span>
+                            <span className="ml-1">Cart</span>
+                          </Link>
+                        )}
+                      </Menu.Item>
                       <Menu.Item>
                         {({ active }) => (
                           <Link
                             to="/orders"
-                            className={`${
-                              active ? 'bg-white/10 text-white' : 'text-slate-200'
-                            } group flex rounded-xl items-center w-full px-3 py-2 text-sm transition-colors border border-transparent hover:border-white/10`}
+                            className={`group flex items-center w-full px-4 py-3 text-sm ${
+                              active ? 'bg-white/6 text-white scale-[1.02]' : 'text-slate-200'
+                            } transition-all duration-150 ease-out`}
                           >
-                            <Package className="w-4 h-4 mr-2 text-slate-300 group-hover:text-white" />
-                            My Orders
+                            <span className="inline-flex items-center justify-center w-8">
+                              <Package className="w-4 h-4 text-slate-300 group-hover:text-white" />
+                            </span>
+                            <span className="ml-1">My Orders</span>
                           </Link>
                         )}
                       </Menu.Item>
-                    </div>
-                    <div className="px-1 py-1">
                       <Menu.Item>
                         {({ active }) => (
                           <button
                             onClick={logout}
-                            className={`${
-                              active ? 'bg-red-500/15 text-red-300' : 'text-slate-200'
-                            } group flex rounded-xl items-center w-full px-3 py-2 text-sm transition-colors border border-transparent hover:border-red-500/30`}
+                            className={`group flex items-center w-full px-4 py-3 text-sm text-left ${
+                              active ? 'bg-red-500/10 text-red-300 scale-[1.02]' : 'text-slate-200'
+                            } transition-all duration-150 ease-out`}
                           >
-                            <LogOut className="w-4 h-4 mr-2 text-red-300 group-hover:text-red-200" />
-                            Logout
+                            <span className="inline-flex items-center justify-center w-8">
+                              <LogOut className="w-4 h-4 text-red-300 group-hover:text-red-200" />
+                            </span>
+                            <span className="ml-1">Logout</span>
                           </button>
                         )}
                       </Menu.Item>

@@ -1,23 +1,30 @@
 package com.CodeWithRishu.SnapBuy.controller;
 
-import com.CodeWithRishu.SnapBuy.entity.RefreshToken;
-import com.CodeWithRishu.SnapBuy.entity.User;
 import com.CodeWithRishu.SnapBuy.dto.request.AuthRequest;
 import com.CodeWithRishu.SnapBuy.dto.request.RefreshTokenRequest;
 import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
+import com.CodeWithRishu.SnapBuy.entity.RefreshToken;
+import com.CodeWithRishu.SnapBuy.entity.User;
+import com.CodeWithRishu.SnapBuy.service.AuthService;
 import com.CodeWithRishu.SnapBuy.service.JwtService;
 import com.CodeWithRishu.SnapBuy.service.RefreshTokenService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
-@CrossOrigin
 public class AuthController {
     private final JwtService jwtService;
+    private final AuthService authService;
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
 
@@ -29,6 +36,7 @@ public class AuthController {
 
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.email());
         User user = refreshToken.getUserInfo();
+
         return JwtResponse.builder()
                 .accessToken(jwtService.generateToken(user))
                 .refreshToken(refreshToken.getToken()).build();
@@ -36,10 +44,8 @@ public class AuthController {
 
     @PostMapping("/signUp")
     public JwtResponse registerAndGetAccessAndRefreshToken(@RequestBody User userInfo) {
-        if (userInfo.getName() == null || userInfo.getName().isEmpty())
-            userInfo.setName(userInfo.getEmail().split("@")[0]);
-        jwtService.register(userInfo);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userInfo.getName());
+        authService.register(userInfo);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userInfo.getEmail());
 
         return JwtResponse.builder()
                 .accessToken(jwtService.generateToken(userInfo))
@@ -47,7 +53,7 @@ public class AuthController {
     }
 
     @PostMapping("/refreshToken")
-    public JwtResponse getRefreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+    public JwtResponse getRefreshToken(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
         return refreshTokenService.findByToken(refreshTokenRequest.token())
                 .map(refreshTokenService::verifyExpiration)
                 .map(RefreshToken::getUserInfo)
@@ -57,8 +63,10 @@ public class AuthController {
                             .accessToken(accessToken)
                             .refreshToken(refreshTokenRequest.token())
                             .build();
-                }).orElseThrow(() -> new RuntimeException(
-                        "Refresh token is not in database!"));
+                }).orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Refresh token is invalid, expired, or not found in database.")
+                );
     }
 
 }

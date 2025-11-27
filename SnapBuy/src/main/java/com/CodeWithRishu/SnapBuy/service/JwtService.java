@@ -1,18 +1,14 @@
 package com.CodeWithRishu.SnapBuy.service;
 
 import com.CodeWithRishu.SnapBuy.entity.User;
-import com.CodeWithRishu.SnapBuy.exception.UserAlreadyExists;
-import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -23,14 +19,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class JwtService {
+
     @Value("${jwt.secret}")
     private String secret;
-
-    private final UserRepository repository;
-    private final PasswordEncoder passwordEncoder;
 
     public String extractUsername(String token) {
         log.debug("Extracting username from token");
@@ -79,7 +72,6 @@ public class JwtService {
         claims.put("userId", user.getId());
         claims.put("name", user.getName());
         claims.put("email", user.getEmail());
-        claims.put("profileImage", user.getProfileImage());
 
         String token = createToken(claims, user.getEmail());
 
@@ -106,25 +98,4 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public void register(User userInfo) {
-        log.info("Adding new user: {}", userInfo.getEmail());
-        if (repository.findByEmail(userInfo.getEmail()).isPresent()) {
-            throw new UserAlreadyExists("User already exists with email: " + userInfo.getEmail());
-        }
-
-        userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));
-        repository.save(userInfo);
-        log.info("User '{}' added successfully", userInfo.getEmail());
-    }
-
-    public void registerForGoogle(User user) {
-        log.info("Adding new Google user: {}", user.getEmail());
-        if (repository.findByEmail(user.getEmail()).isPresent()) {
-            log.info("User already exists with email: {}", user.getEmail());
-            return;
-        }
-
-        repository.save(user);
-        log.info("Google user '{}' added successfully", user.getEmail());
-    }
 }

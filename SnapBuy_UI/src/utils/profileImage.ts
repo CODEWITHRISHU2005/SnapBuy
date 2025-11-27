@@ -1,0 +1,40 @@
+const BASE64_REGEX = /^[A-Za-z0-9+/]+={0,2}$/;
+
+const isLikelyBase64 = (value: string): boolean => {
+  if (value.length < 16 || value.length % 4 !== 0) {
+    return false;
+  }
+  return BASE64_REGEX.test(value);
+};
+
+export const normalizeProfileImage = (value?: string): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (/^(data:image\/|https?:\/\/|blob:)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (isLikelyBase64(trimmed)) {
+    return `data:image/jpeg;base64,${trimmed}`;
+  }
+
+  return trimmed;
+};
+
+export const resolveProfileImage = (...sources: (string | undefined)[]): string | undefined => {
+  for (const source of sources) {
+    const normalized = normalizeProfileImage(source);
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return undefined;
+};
+

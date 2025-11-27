@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { productAPI } from '../services/api';
-import { Package, DollarSign, Tag, Layers, Calendar, FileText, Upload, Plus, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import type { Product } from '../types';
+import { Package, DollarSign, Tag, Layers, Calendar, FileText, Upload, Plus, CheckCircle2, AlertCircle, Sparkles, Trash2 } from 'lucide-react';
 
 interface ProductForm {
   name: string;
   description: string;
-  price: number;
+  price: string;
   brand: string;
   category: string;
-  stockQuantity: number;
+  stockQuantity: string;
   releaseDate: string;
 }
 
@@ -16,16 +17,45 @@ export default function AdminPage() {
   const [formData, setFormData] = useState<ProductForm>({
     name: '',
     description: '',
-    price: 0,
+    price: '',
     brand: '',
     category: 'Electronics',
-    stockQuantity: 0,
+    stockQuantity: '',
     releaseDate: new Date().toISOString().split('T')[0],
   });
   const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await productAPI.getAll();
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        await productAPI.delete(id);
+        setProducts(products.filter(product => product.id !== id));
+        setMessage({ type: 'success', text: 'Product deleted successfully!' });
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        setMessage({ type: 'error', text: 'Failed to delete product.' });
+      }
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -35,13 +65,50 @@ export default function AdminPage() {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'price' || name === 'stockQuantity' ? parseFloat(value) : value,
+      [name]: value,
     }));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       setImage(e.target.files[0]);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!formData.name || !formData.category) {
+      setMessage({ type: 'error', text: 'Please enter product name and category first.' });
+      return;
+    }
+    setGeneratingDescription(true);
+    try {
+      const response = await productAPI.generateDescription(formData.name, formData.category);
+      setFormData(prev => ({ ...prev, description: response.data }));
+      setMessage({ type: 'success', text: 'Description generated successfully!' });
+    } catch (error) {
+      console.error('Error generating description:', error);
+      setMessage({ type: 'error', text: 'Failed to generate description.' });
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!formData.name || !formData.category || !formData.description) {
+      setMessage({ type: 'error', text: 'Please enter name, category and description first.' });
+      return;
+    }
+    setGeneratingImage(true);
+    try {
+      const response = await productAPI.generateImage(formData.name, formData.category, formData.description);
+      const file = new File([response.data], `${formData.name.replace(/\s+/g, '-').toLowerCase()}-ai.png`, { type: 'image/png' });
+      setImage(file);
+      setMessage({ type: 'success', text: 'Image generated successfully!' });
+    } catch (error) {
+      console.error('Error generating image:', error);
+      setMessage({ type: 'error', text: 'Failed to generate image.' });
+    } finally {
+      setGeneratingImage(false);
     }
   };
 
@@ -52,13 +119,15 @@ export default function AdminPage() {
 
     try {
       const formDataToSend = new FormData();
+      const priceValue = parseFloat(formData.price);
+      const stockValue = parseInt(formData.stockQuantity, 10);
       const productJSON = {
         name: formData.name,
         description: formData.description,
-        price: formData.price,
+        price: Number.isFinite(priceValue) ? priceValue : 0,
         brand: formData.brand,
         category: formData.category,
-        stockQuantity: formData.stockQuantity,
+        stockQuantity: Number.isFinite(stockValue) ? stockValue : 0,
         productAvailable: true,
         releaseDate: formData.releaseDate,
       };
@@ -73,10 +142,10 @@ export default function AdminPage() {
       setFormData({
         name: '',
         description: '',
-        price: 0,
+        price: '',
         brand: '',
         category: 'Electronics',
-        stockQuantity: 0,
+        stockQuantity: '',
         releaseDate: new Date().toISOString().split('T')[0],
       });
       setImage(null);
@@ -89,6 +158,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
+    fetchProducts(); // Refresh list after adding
   };
 
   return (
@@ -254,7 +324,22 @@ export default function AdminPage() {
                 </div>
 
                 <div className="animate-slide-in-bottom delay-200">
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Product Image</label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Product Image</label>
+                    <button
+                      type="button"
+                      onClick={handleGenerateImage}
+                      disabled={generatingImage}
+                      className="text-xs flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+                    >
+                      {generatingImage ? (
+                        <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      Generate with AI
+                    </button>
+                  </div>
                   <div className="mt-1 flex justify-center px-6 pt-6 pb-6 border-2 border-slate-300 dark:border-slate-600 border-dashed rounded-xl hover:border-indigo-500 dark:hover:border-indigo-500 transition-all duration-300 bg-slate-50 dark:bg-slate-800/50 group cursor-pointer">
                     <div className="space-y-2 text-center">
                       <div className="mx-auto w-14 h-14 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
@@ -295,7 +380,22 @@ export default function AdminPage() {
             </div>
 
             <div className="mt-8 animate-slide-in-bottom delay-300">
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Description</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Description</label>
+                <button
+                  type="button"
+                  onClick={handleGenerateDescription}
+                  disabled={generatingDescription}
+                  className="text-xs flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+                >
+                  {generatingDescription ? (
+                    <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3 h-3" />
+                  )}
+                  Generate with AI
+                </button>
+              </div>
               <div className="relative group input-glow">
                 <div className="absolute top-3 left-3 pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
                   <FileText className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
@@ -330,6 +430,79 @@ export default function AdminPage() {
               </button>
             </div>
           </form>
+        </div>
+
+        {/* Product List Section */}
+        <div className={`mt-12 glass-enhanced rounded-3xl shadow-2xl border border-white/60 dark:border-slate-700/50 overflow-hidden transition-all duration-500 hover:shadow-3xl ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-8 py-5 relative overflow-hidden">
+            <h2 className="text-xl font-bold text-white flex items-center relative z-10">
+              <Package className="w-6 h-6 mr-3" />
+              Existing Products
+            </h2>
+          </div>
+
+          <div className="p-8">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">Image</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">Name</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">Category</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">Price</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">Stock</th>
+                    <th className="py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-500 dark:text-slate-400">
+                        No products found.
+                      </td>
+                    </tr>
+                  ) : (
+                    products.map((product) => (
+                      <tr key={product.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="py-4 px-4">
+                          <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                            {product.imageData ? (
+                              <img
+                                src={`data:image/jpeg;base64,${product.imageData}`}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                <Package className="w-6 h-6" />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 font-medium text-slate-900 dark:text-white">{product.name}</td>
+                        <td className="py-4 px-4 text-slate-600 dark:text-slate-300">
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                            {product.category}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-600 dark:text-slate-300">${product.price.toFixed(2)}</td>
+                        <td className="py-4 px-4 text-slate-600 dark:text-slate-300">{product.stockQuantity}</td>
+                        <td className="py-4 px-4 text-right">
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Delete Product"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -13,14 +13,11 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class PaymentService {
 
-    private final String stripeSecretKey;
     private final String stripeSuccessUrl;
     private final String stripeCancelUrl;
 
-    public PaymentService(@Value("${stripe.secret.key}") String stripeSecretKey,
-                          @Value("${stripe.success.url}") String stripeSuccessUrl,
+    public PaymentService(@Value("${stripe.success.url}") String stripeSuccessUrl,
                           @Value("${stripe.cancel.url}") String stripeCancelUrl) {
-        this.stripeSecretKey = stripeSecretKey;
         this.stripeSuccessUrl = stripeSuccessUrl;
         this.stripeCancelUrl = stripeCancelUrl;
     }
@@ -68,4 +65,5 @@ public class PaymentService {
             throw e;
         }
     }
+
 }

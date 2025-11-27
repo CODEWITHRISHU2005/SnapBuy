@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { authAPI } from '../services/api';
 import type { AuthRequest, User } from '../types';
 import { decodeToken } from '../utils/jwt';
+import { resolveProfileImage } from '../utils/profileImage';
 
 interface AuthContextType {
   user: User | null;
@@ -26,8 +27,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return Number.isFinite(parsed) ? parsed : 0;
   };
 
+  const getToken = (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.warn(`Unable to read ${key} from localStorage`, error);
+      return null;
+    }
+  };
+
+  const setToken = (key: string, value: string): boolean => {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      console.error(`Unable to write ${key} to localStorage`, error);
+      return false;
+    }
+  };
+
+  const clearStoredTokens = () => {
+    try {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+    } catch (error) {
+      console.warn('Unable to clear auth tokens from localStorage', error);
+    }
+  };
+
+  const persistTokens = (accessToken: string, refreshToken: string) => {
+    const accessStored = setToken('accessToken', accessToken);
+    const refreshStored = setToken('refreshToken', refreshToken);
+
+    if (!accessStored || !refreshStored) {
+      clearStoredTokens();
+      throw new Error('Unable to store authentication tokens.');
+    }
+  };
+
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = getToken('accessToken');
     if (token) {
       try {
         const decodedToken = decodeToken(token);
@@ -40,12 +79,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           name: decodedToken.sub || storedUser.name || '',
           email: decodedToken.email || storedUser.email || '',
           roles: decodedToken.roles || '',
-          profileImage: decodedToken.profileImage || decodedToken.picture || storedUser.profileImage || '',
+          profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, storedUser.profileImage),
         };
         setUser(userData);
       } catch (e) {
         console.error("Failed to restore user from token", e);
-        localStorage.removeItem('accessToken');
+        clearStoredTokens();
         localStorage.removeItem('user');
       }
     }
@@ -56,8 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await authAPI.signIn(credentials);
       const { accessToken, refreshToken } = response.data;
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      persistTokens(accessToken, refreshToken);
 
       const decodedToken = decodeToken(accessToken);
       console.log('Decoded Token:', decodedToken);
@@ -67,7 +105,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: decodedToken.sub || credentials.email,
         email: decodedToken.email || credentials.email,
         roles: decodedToken.roles || '',
-        profileImage: decodedToken.profileImage || decodedToken.picture || '',
+        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture),
       };
 
       localStorage.setItem('user', JSON.stringify(userData));
@@ -80,23 +118,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const register = async (userData: User) => {
     try {
+      console.log('Register function called with userData:', {
+        ...userData,
+        password: '***',
+        adminKey: userData.adminKey ? '***' : undefined
+      });
+
       // Clear existing tokens to ensure a fresh registration
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      clearStoredTokens();
       localStorage.removeItem('user');
 
       const response = await authAPI.signUp(userData);
+      console.log('SignUp API response:', response);
+
       const { accessToken, refreshToken } = response.data;
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      persistTokens(accessToken, refreshToken);
 
       const decodedToken = decodeToken(accessToken);
+      console.log('Decoded token after signup:', decodedToken);
+      console.log('Roles from token:', decodedToken.roles);
+      console.log('Roles from userData:', userData.roles);
 
       const newUserData: User = {
         ...userData,
         roles: decodedToken.roles || userData.roles || '',
-        profileImage: decodedToken.profileImage || decodedToken.picture || userData.profileImage || '',
+        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, userData.profileImage),
       };
+
+      console.log('Final user data being stored:', {
+        ...newUserData,
+        password: '***'
+      });
 
       localStorage.setItem('user', JSON.stringify(newUserData));
       setUser(newUserData);
@@ -110,8 +162,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await authAPI.googleSignIn(credential);
       const { accessToken, refreshToken } = response.data;
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      persistTokens(accessToken, refreshToken);
 
       const decodedToken = decodeToken(accessToken);
       console.log('Google Login - Decoded Token:', decodedToken);
@@ -121,7 +172,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: decodedToken.sub || '',
         email: decodedToken.email || '',
         roles: decodedToken.roles || '',
-        profileImage: decodedToken.profileImage || decodedToken.picture || '',
+        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture),
       };
 
       localStorage.setItem('user', JSON.stringify(userData));
@@ -133,14 +184,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    clearStoredTokens();
     localStorage.removeItem('user');
     setUser(null);
   };
 
   const setUserFromToken = () => {
-    const token = localStorage.getItem('accessToken');
+    const token = getToken('accessToken');
     if (token) {
       try {
         const decodedToken = decodeToken(token);
@@ -153,7 +203,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           name: decodedToken.sub || storedUser.name || '',
           email: decodedToken.email || storedUser.email || '',
           roles: decodedToken.roles || storedUser.roles || '',
-          profileImage: decodedToken.profileImage || decodedToken.picture || storedUser.profileImage || '',
+          profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, storedUser.profileImage),
         };
         setUser(userData);
       } catch (e) {

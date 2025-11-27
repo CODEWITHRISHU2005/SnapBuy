@@ -18,8 +18,9 @@ const CheckoutPage: React.FC = () => {
     street: '',
     city: '',
     state: '',
-    zipCode: '',
+    pinCode: '',
     country: '',
+    phoneNumber: 0,
   });
   const [customerName, setCustomerName] = useState(user?.name ?? '');
   const [customerEmail, setCustomerEmail] = useState(user?.email ?? '');
@@ -196,12 +197,12 @@ const CheckoutPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="animate-slide-in-bottom delay-200">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">ZIP Code</label>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">PIN Code</label>
                     <input
                       type="text"
                       required
-                      value={address.zipCode}
-                      onChange={(e) => setAddress({ ...address, zipCode: e.target.value })}
+                      value={address.pinCode}
+                      onChange={(e) => setAddress({ ...address, pinCode: e.target.value })}
                       className="block w-full px-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700 input-glow"
                       placeholder="Enter pin code"
                     />
@@ -237,11 +238,10 @@ const CheckoutPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('stripe')}
-                  className={`p-5 rounded-2xl text-left border-2 transition-all duration-300 focus:outline-none ${
-                    paymentMethod === 'stripe'
-                      ? 'border-indigo-500 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 dark:from-indigo-900/40 dark:to-purple-900/40 shadow-lg shadow-indigo-500/20'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
-                  }`}
+                  className={`p-5 rounded-2xl text-left border-2 transition-all duration-300 focus:outline-none ${paymentMethod === 'stripe'
+                    ? 'border-indigo-500 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 dark:from-indigo-900/40 dark:to-purple-900/40 shadow-lg shadow-indigo-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -254,11 +254,10 @@ const CheckoutPage: React.FC = () => {
                       </div>
                     </div>
                     <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        paymentMethod === 'stripe'
-                          ? 'border-indigo-600 bg-indigo-600'
-                          : 'border-slate-300 dark:border-slate-500'
-                      }`}
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'stripe'
+                        ? 'border-indigo-600 bg-indigo-600'
+                        : 'border-slate-300 dark:border-slate-500'
+                        }`}
                     >
                       {paymentMethod === 'stripe' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                     </div>
@@ -271,11 +270,10 @@ const CheckoutPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('cod')}
-                  className={`p-5 rounded-2xl text-left border-2 transition-all duration-300 focus:outline-none ${
-                    paymentMethod === 'cod'
-                      ? 'border-indigo-500 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 dark:from-indigo-900/40 dark:to-purple-900/40 shadow-lg shadow-indigo-500/20'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
-                  }`}
+                  className={`p-5 rounded-2xl text-left border-2 transition-all duration-300 focus:outline-none ${paymentMethod === 'cod'
+                    ? 'border-indigo-500 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 dark:from-indigo-900/40 dark:to-purple-900/40 shadow-lg shadow-indigo-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -288,11 +286,10 @@ const CheckoutPage: React.FC = () => {
                       </div>
                     </div>
                     <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        paymentMethod === 'cod'
-                          ? 'border-indigo-600 bg-indigo-600'
-                          : 'border-slate-300 dark:border-slate-500'
-                      }`}
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cod'
+                        ? 'border-indigo-600 bg-indigo-600'
+                        : 'border-slate-300 dark:border-slate-500'
+                        }`}
                     >
                       {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                     </div>

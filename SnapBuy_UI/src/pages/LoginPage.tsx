@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ottAPI } from '../services/api';
-import { Package, Mail, Lock, ArrowRight, MapPin, CheckCircle2, AlertCircle, Sparkles, Phone, Shield } from 'lucide-react';
+import { Package, Mail, Lock, ArrowRight, MapPin, CheckCircle2, AlertCircle, Sparkles, Phone, Shield, User, Camera } from 'lucide-react';
 import type { Address } from '../types';
 import { Role } from '../types';
 import { decodeToken } from '../utils/jwt';
+import { resolveProfileImage } from '../utils/profileImage';
 
 const LoginPage: React.FC = () => {
   const [isOTT, setIsOTT] = useState(false);
@@ -13,25 +14,41 @@ const LoginPage: React.FC = () => {
   const [ottToken, setOttToken] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [profileImage, setProfileImage] = useState<string>('');
+  const [profileImagePreview, setProfileImagePreview] = useState<string>('');
 
   const [adminKey, setAdminKey] = useState('');
   const [address, setAddress] = useState<Address>({
     street: '',
     city: '',
     state: '',
-    zipCode: '',
+    pinCode: 0,
     country: '',
+    phoneNumber: 0,
   });
 
   const { login, register, setUserFromToken } = useAuth();
   const navigate = useNavigate();
+
+  const storeTokensSafely = (accessToken: string, refreshToken?: string) => {
+    try {
+      localStorage.setItem('accessToken', accessToken);
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
+      }
+    } catch (error) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      throw new Error('Unable to store authentication tokens.');
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -43,30 +60,58 @@ const LoginPage: React.FC = () => {
     const errorParam = params.get('error');
 
     if (token) {
-      localStorage.setItem('accessToken', token);
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
-
       try {
+        storeTokensSafely(token, refreshToken ?? undefined);
+
         const decodedToken = decodeToken(token);
         const userData = {
           id: decodedToken.id || 0,
           name: decodedToken.sub || '',
           email: decodedToken.email || '',
           roles: decodedToken.roles || '',
+          profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture),
         };
         localStorage.setItem('user', JSON.stringify(userData));
         setUserFromToken();
         navigate('/');
       } catch (e) {
         console.error("Failed to process token from URL", e);
-        setError('Authentication failed. Invalid token.');
+        setError('Authentication failed. Invalid or oversized token.');
       }
     } else if (errorParam) {
       setError(errorParam === 'oauth_failed' ? 'Google login failed. Please try again.' : errorParam);
     }
   }, [setUserFromToken, navigate]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size should be less than 5MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        // Keep the full string for preview
+        setProfileImagePreview(base64String);
+
+        // Strip the data:image/...;base64, prefix for the backend
+        // The backend expects a raw base64 string for the byte[] field
+        const base64Content = base64String.split(',')[1];
+        setProfileImage(base64Content);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,19 +125,38 @@ const LoginPage: React.FC = () => {
         await login({ email: username, password });
 
       } else {
-        await register({
+        const signupData = {
           id: 0,
-          name: username,
+          name: fullName,
           email: username,
           password,
-          phoneNumber,
+          profileImage: profileImage || undefined,
+          adminKey: adminKey || undefined,
           roles: [adminKey === 'Rishabh@2005' ? Role.ADMIN : Role.USER],
           userAddress: address
+        };
+        console.log('Signup attempt with data:', {
+          ...signupData,
+          password: '***',
+          adminKey: adminKey ? '***' : undefined,
+          isAdminSignup: adminKey === 'Rishabh@2005'
         });
+        await register(signupData);
       }
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Authentication failed. Please try again.');
+      console.error('Authentication error:', err);
+      console.error('Error response:', err.response);
+      console.error('Error data:', err.response?.data);
+      console.error('Error message:', err.response?.data?.message);
+      console.error('Error status:', err.response?.status);
+
+      const errorMessage = err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Authentication failed. Please try again.';
+      setError(errorMessage);
+
       // Shake animation on error
       if (form) {
         form.classList.add('animate-shake');
@@ -130,8 +194,7 @@ const LoginPage: React.FC = () => {
       const response = await ottAPI.login(ottToken);
       const { accessToken, refreshToken } = response.data;
 
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      storeTokensSafely(accessToken, refreshToken);
 
       // Decode token and set user data (similar to regular login)
       const decodedToken = decodeToken(accessToken);
@@ -140,7 +203,7 @@ const LoginPage: React.FC = () => {
         name: decodedToken.sub || '',
         email: decodedToken.email || '',
         roles: decodedToken.roles || '',
-        profileImage: decodedToken.profileImage || decodedToken.picture || '',
+        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture),
       };
       localStorage.setItem('user', JSON.stringify(userData));
 
@@ -295,6 +358,28 @@ const LoginPage: React.FC = () => {
             // Standard Login/Register Form
             <form className={`space-y-6 form-transition ${mounted ? 'opacity-100' : 'opacity-0'}`} onSubmit={handleSubmit}>
               <div className="space-y-5">
+                {!isLogin && (
+                  <div className="animate-slide-in-bottom">
+                    <label htmlFor="fullName" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Full Name
+                    </label>
+                    <div className="relative group input-glow">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
+                        <User className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
+                      </div>
+                      <input
+                        id="fullName"
+                        name="fullName"
+                        type="text"
+                        required
+                        className="block w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
+                        placeholder="Enter your full name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="animate-slide-in-bottom">
                   <label htmlFor="username" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     Email Address
@@ -354,9 +439,55 @@ const LoginPage: React.FC = () => {
                           required
                           className="block w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
                           placeholder="Enter your phone number"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          value={address.phoneNumber || ''}
+                          onChange={(e) => setAddress({ ...address, phoneNumber: parseInt(e.target.value) || 0 })}
                         />
+                      </div>
+                    </div>
+
+                    {/* Profile Image Upload */}
+                    <div className="animate-slide-in-bottom delay-200">
+                      <label htmlFor="profileImage" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        Profile Image (Optional)
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="profileImage"
+                          name="profileImage"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="profileImage"
+                          className="flex flex-col items-center justify-center w-full px-4 py-6 bg-white/80 dark:bg-slate-800/80 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-300 group hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20"
+                        >
+                          {profileImagePreview ? (
+                            <div className="relative">
+                              <img
+                                src={profileImagePreview}
+                                alt="Profile preview"
+                                className="w-24 h-24 rounded-full object-cover border-4 border-indigo-200 dark:border-indigo-700 shadow-lg"
+                              />
+                              <div className="absolute -bottom-2 -right-2 p-2 bg-indigo-600 rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300">
+                                <Camera className="w-4 h-4 text-white" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center">
+                              <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-full mb-3 group-hover:scale-110 transition-transform duration-300">
+                                <User className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+                              </div>
+                              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+                                Click to upload profile image
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-500">
+                                PNG, JPG up to 5MB
+                              </p>
+                            </div>
+                          )}
+                        </label>
                       </div>
                     </div>
 
@@ -422,17 +553,17 @@ const LoginPage: React.FC = () => {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label htmlFor="zipCode" className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
-                            ZIP Code
+                          <label htmlFor="pinCode" className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+                            PIN Code
                           </label>
                           <input
-                            id="zipCode"
-                            name="zipCode"
+                            id="pinCode"
+                            name="pinCode"
                             type="text"
                             className="block w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
                             placeholder="Enter pincode"
-                            value={address.zipCode}
-                            onChange={(e) => setAddress({ ...address, zipCode: e.target.value })}
+                            value={address.pinCode || ''}
+                            onChange={(e) => setAddress({ ...address, pinCode: parseInt(e.target.value) || 0 })}
                           />
                         </div>
 
@@ -558,13 +689,16 @@ const LoginPage: React.FC = () => {
                     setIsLogin(!isLogin);
                     setError('');
                     if (!isLogin) {
-                      setPhoneNumber('');
+                      setFullName('');
+                      setProfileImage('');
+                      setProfileImagePreview('');
                       setAddress({
                         street: '',
                         city: '',
                         state: '',
-                        zipCode: '',
+                        pinCode: 0,
                         country: '',
+                        phoneNumber: 0,
                       });
                     }
                   }}

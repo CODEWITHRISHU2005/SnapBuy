@@ -18,7 +18,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 @RequestMapping("/api/products")
-@CrossOrigin
 public class ProductController {
 
     private final ProductService productService;
@@ -32,7 +31,7 @@ public class ProductController {
     @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_USER')")
     public ResponseEntity<Page<Product>> getProductsByPaginationAndSorting(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "name") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
         Page<Product> productPage = productService.getProductsByPaginationAndSorting(page, size, sortBy, sortDirection);
