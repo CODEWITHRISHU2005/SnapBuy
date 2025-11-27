@@ -19,7 +19,7 @@ export default function AdminPage() {
     description: '',
     price: '',
     brand: '',
-    category: 'Electronics',
+    category: 'Mobile & Accessories',
     stockQuantity: '',
     releaseDate: new Date().toISOString().split('T')[0],
   });
@@ -30,6 +30,7 @@ export default function AdminPage() {
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [activeCategory, setActiveCategory] = useState('All');
 
   useEffect(() => {
     fetchProducts();
@@ -43,6 +44,13 @@ export default function AdminPage() {
       console.error('Error fetching products:', error);
     }
   };
+
+  const categories = ['All', 'Mobile & Accessories', 'TVs & Appliances', 'Lifestyle', 'Home & Furnitures'];
+
+  // Filter products based on selected category
+  const filteredProducts = activeCategory === 'All'
+    ? products
+    : products.filter(product => product.category === activeCategory);
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
@@ -144,7 +152,7 @@ export default function AdminPage() {
         description: '',
         price: '',
         brand: '',
-        category: 'Electronics',
+        category: 'Mobile & Accessories',
         stockQuantity: '',
         releaseDate: new Date().toISOString().split('T')[0],
       });
@@ -291,13 +299,10 @@ export default function AdminPage() {
                       onChange={handleChange}
                       className="block w-full pl-12 pr-10 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700 appearance-none cursor-pointer"
                     >
-                      <option>Electronics</option>
-                      <option>Accessories</option>
-                      <option>Software</option>
-                      <option>Hardware</option>
-                      <option>Fashion</option>
-                      <option>Home</option>
+                      <option>Mobile & Accessories</option>
+                      <option>TVs & Appliances</option>
                       <option>Lifestyle</option>
+                      <option>Home & Furnitures</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
                       <svg className="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -442,6 +447,31 @@ export default function AdminPage() {
           </div>
 
           <div className="p-8">
+            {/* Category Filter Buttons */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3">Filter by Category</h3>
+              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => setActiveCategory(category)}
+                    className={`px-6 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 shadow-md hover:shadow-lg ${
+                      activeCategory === category
+                        ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-xl shadow-indigo-500/50 scale-105 border border-indigo-400/30'
+                        : 'bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 hover:text-indigo-600 dark:hover:text-indigo-400 border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700 hover:scale-105'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+              {activeCategory !== 'All' && (
+                <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                  Showing <span className="font-bold text-indigo-600 dark:text-indigo-400">{filteredProducts.length}</span> product{filteredProducts.length !== 1 ? 's' : ''} in <span className="font-bold text-purple-600 dark:text-purple-400">{activeCategory}</span>
+                </p>
+              )}
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -455,14 +485,14 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.length === 0 ? (
+                  {filteredProducts.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-slate-500 dark:text-slate-400">
-                        No products found.
+                        {activeCategory === 'All' ? 'No products found.' : `No products found in ${activeCategory}.`}
                       </td>
                     </tr>
                   ) : (
-                    products.map((product) => (
+                    filteredProducts.map((product) => (
                       <tr key={product.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                         <td className="py-4 px-4">
                           <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden">

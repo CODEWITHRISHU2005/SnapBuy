@@ -28,10 +28,9 @@ public class ProductController {
     }
 
     @GetMapping("/pagination&sorting")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_USER')")
     public ResponseEntity<Page<Product>> getProductsByPaginationAndSorting(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "12") int size,
             @RequestParam(defaultValue = "name") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
         Page<Product> productPage = productService.getProductsByPaginationAndSorting(page, size, sortBy, sortDirection);
