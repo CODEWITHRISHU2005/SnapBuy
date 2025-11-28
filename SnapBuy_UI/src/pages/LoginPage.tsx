@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ottAPI } from '../services/api';
+import { ottAPI, otpAPI } from '../services/api';
 import { Package, Mail, Lock, ArrowRight, MapPin, CheckCircle2, AlertCircle, Sparkles, Phone, Shield, User, Camera } from 'lucide-react';
 import type { Address } from '../types';
 import { Role } from '../types';
 import { decodeToken } from '../utils/jwt';
 import { resolveProfileImage } from '../utils/profileImage';
+
+const initialAddressState: Address = {
+  street: '',
+  city: '',
+  state: '',
+  pinCode: '',
+  country: '',
+  phoneNumber: '',
+};
 
 const LoginPage: React.FC = () => {
   const [isOTT, setIsOTT] = useState(false);
@@ -23,16 +32,16 @@ const LoginPage: React.FC = () => {
   const [mounted, setMounted] = useState(false);
   const [profileImage, setProfileImage] = useState<string>('');
   const [profileImagePreview, setProfileImagePreview] = useState<string>('');
+  const [loginPhone, setLoginPhone] = useState('');
+  const [loginOtp, setLoginOtp] = useState('');
+  const [loginOtpStatus, setLoginOtpStatus] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'verified'>('idle');
+  const [loginOtpMessage, setLoginOtpMessage] = useState('');
+  const [loginOtpError, setLoginOtpError] = useState('');
+  const [loginOtpExpiresAt, setLoginOtpExpiresAt] = useState<string | null>(null);
+
 
   const [adminKey, setAdminKey] = useState('');
-  const [address, setAddress] = useState<Address>({
-    street: '',
-    city: '',
-    state: '',
-    pinCode: 0,
-    country: '',
-    phoneNumber: 0,
-  });
+  const [address, setAddress] = useState<Address>({ ...initialAddressState });
 
   const { login, register, setUserFromToken } = useAuth();
   const navigate = useNavigate();
@@ -49,6 +58,76 @@ const LoginPage: React.FC = () => {
       throw new Error('Unable to store authentication tokens.');
     }
   };
+
+  const normalizePhone = (value: string) => value.replace(/\D/g, '');
+  const sanitizePhoneForPayload = (value: string) => {
+    const digitsOnly = normalizePhone(value);
+    if (!digitsOnly) {
+      return '';
+    }
+    return value.trim().startsWith('+') ? `+${digitsOnly}` : digitsOnly;
+  };
+  const isValidPhone = (value: string) => {
+    const digits = normalizePhone(value);
+    return digits.length >= 10 && digits.length <= 15;
+  };
+
+  const formatExpiryTime = (timestamp: string | null) => {
+    if (!timestamp) {
+      return '';
+    }
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const resetOtpState = () => {
+    setLoginOtp('');
+    setLoginOtpStatus('idle');
+    setLoginOtpMessage('');
+    setLoginOtpError('');
+    setLoginOtpExpiresAt(null);
+    setLoginPhone('');
+  };
+
+  const handleSendOtp = async (action: 'send' | 'resend' = 'send') => {
+    const phoneInput = loginPhone;
+    const sanitizedPhone = sanitizePhoneForPayload(phoneInput);
+    const emailInput = username.trim();
+    
+    if (!isValidPhone(phoneInput)) {
+      setLoginOtpError('Enter a valid phone number to receive the OTP (10-15 digits).');
+      return;
+    }
+
+    if (!emailInput) {
+      setLoginOtpError('Enter your email address before requesting an OTP.');
+      return;
+    }
+
+    setLoginOtpStatus('sending');
+    setLoginOtpMessage('');
+    setLoginOtpError('');
+
+    try {
+      const payload = { phone: sanitizedPhone, email: emailInput };
+      const { data } = action === 'send'
+        ? await otpAPI.send(payload)
+        : await otpAPI.resend(payload);
+      
+      setLoginOtpStatus('sent');
+      setLoginOtpMessage(data.message || `OTP ${action === 'send' ? 'sent' : 'resent'} successfully.`);
+      setLoginOtpExpiresAt(data.expiresAt ?? null);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Unable to send OTP. Please try again.';
+      setLoginOtpStatus('idle');
+      setLoginOtpError(errorMessage);
+    }
+  };
+
+
 
   useEffect(() => {
     setMounted(true);
@@ -122,8 +201,30 @@ const LoginPage: React.FC = () => {
 
     try {
       if (isLogin) {
-        await login({ email: username, password });
-
+        // For login with OTP: Send OTP data to backend, which will verify and authenticate
+        const sanitizedPhone = sanitizePhoneForPayload(loginPhone);
+        const emailInput = username.trim();
+        
+        // Check if OTP was requested
+        if (loginOtpStatus === 'idle') {
+          setError('Please request an OTP before signing in.');
+          setLoading(false);
+          return;
+        }
+        
+        // Check if OTP was entered
+        if (!loginOtp || loginOtp.trim().length < 4) {
+          setError('Please enter the OTP sent to your phone.');
+          setLoading(false);
+          return;
+        }
+        
+        // Backend will verify the OTP during sign-in
+        await login({
+          email: emailInput,
+          phone: sanitizedPhone,
+          otp: loginOtp.trim(),
+        });
       } else {
         const signupData = {
           id: 0,
@@ -223,6 +324,9 @@ const LoginPage: React.FC = () => {
     // Spring Security will then redirect to Google with the configured redirect-uri (login/oauth2/code/google)
     window.location.href = 'http://localhost:8080/oauth2/authorization/google';
   };
+
+  const isLoginOtpSending = loginOtpStatus === 'sending';
+
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 transition-colors duration-500">
@@ -347,6 +451,7 @@ const LoginPage: React.FC = () => {
                     setOttStep('request');
                     setError('');
                     setSuccessMessage('');
+                    resetOtpState();
                   }}
                   className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:underline"
                 >
@@ -401,6 +506,105 @@ const LoginPage: React.FC = () => {
                   </div>
                 </div>
 
+                {isLogin && (
+                  <div className="animate-slide-in-bottom">
+                    <label htmlFor="loginPhone" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Phone Number (OTP Verification)
+                    </label>
+                    <div className="relative group input-glow">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
+                        <Phone className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
+                      </div>
+                      <input
+                        id="loginPhone"
+                        name="loginPhone"
+                        type="tel"
+                        required
+                        inputMode="tel"
+                        pattern="[0-9+ ]*"
+                        className="block w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
+                        placeholder="Enter phone number linked to your account"
+                        value={loginPhone}
+                        onChange={(e) => setLoginPhone(e.target.value)}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">
+                      We will send a verification OTP to this number for secure sign in.
+                    </p>
+                  </div>
+                )}
+
+                {isLogin && (
+                  <div className="animate-slide-in-bottom">
+                    <div className="rounded-2xl border-2 border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/40 dark:bg-slate-800/50 p-4 sm:p-5">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-indigo-500" />
+                            Secure with OTP
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            {loginOtpStatus === 'verified'
+                              ? 'Phone verified • Ready to sign in'
+                              : loginOtpExpiresAt
+                                ? `Current OTP expires at ${formatExpiryTime(loginOtpExpiresAt)}`
+                                : 'OTP is valid for 5 minutes'}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void handleSendOtp()}
+                            disabled={!isValidPhone(loginPhone) || isLoginOtpSending}
+                            className="px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                          >
+                            {loginOtpStatus === 'sending' ? 'Sending...' : 'Send OTP'}
+                          </button>
+                          {loginOtpStatus === 'sent' && (
+                            <button
+                              type="button"
+                              onClick={() => void handleSendOtp('resend')}
+                              disabled={isLoginOtpSending}
+                              className="px-4 py-2 rounded-xl text-sm font-semibold border-2 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Resend
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {loginOtpStatus !== 'idle' && (
+                        <div className="mt-4">
+                          <div className="relative">
+                            <input
+                              type="tel"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={6}
+                              placeholder="Enter 4-6 digit OTP"
+                              className="block w-full px-4 py-3 bg-white/80 dark:bg-slate-900/60 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition"
+                              value={loginOtp}
+                              onChange={(e) => setLoginOtp(e.target.value.replace(/[^\d]/g, ''))}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {loginOtpMessage && (
+                        <p className="mt-3 text-xs font-medium text-green-600 dark:text-green-400">
+                          {loginOtpMessage}
+                          {loginOtpExpiresAt && ` • Expires at ${formatExpiryTime(loginOtpExpiresAt)}`}
+                        </p>
+                      )}
+                      {loginOtpError && (
+                        <p className="mt-3 text-xs font-medium text-red-600 dark:text-red-400">
+                          {loginOtpError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {!isLogin && (
                   <>
                     <div className="animate-slide-in-bottom delay-100">
@@ -439,11 +643,14 @@ const LoginPage: React.FC = () => {
                           required
                           className="block w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
                           placeholder="Enter your phone number"
-                          value={address.phoneNumber || ''}
-                          onChange={(e) => setAddress({ ...address, phoneNumber: parseInt(e.target.value) || 0 })}
+                          value={address.phoneNumber}
+                          onChange={(e) => setAddress({ ...address, phoneNumber: e.target.value })}
                         />
                       </div>
                     </div>
+
+
+
 
                     {/* Profile Image Upload */}
                     <div className="animate-slide-in-bottom delay-200">
@@ -562,8 +769,8 @@ const LoginPage: React.FC = () => {
                             type="text"
                             className="block w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
                             placeholder="Enter pincode"
-                            value={address.pinCode || ''}
-                            onChange={(e) => setAddress({ ...address, pinCode: parseInt(e.target.value) || 0 })}
+                          value={address.pinCode}
+                          onChange={(e) => setAddress({ ...address, pinCode: e.target.value })}
                           />
                         </div>
 
@@ -586,26 +793,28 @@ const LoginPage: React.FC = () => {
                   </>
                 )}
 
-                <div className={`${!isLogin ? 'animate-slide-in-bottom delay-300' : ''}`}>
-                  <label htmlFor="password" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    Password
-                  </label>
-                  <div className="relative group input-glow">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
-                      <Lock className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
+                {!isLogin && (
+                  <div className="animate-slide-in-bottom delay-300">
+                    <label htmlFor="password" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Password
+                    </label>
+                    <div className="relative group input-glow">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
+                        <Lock className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
+                      </div>
+                      <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        className="block w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
                     </div>
-                    <input
-                      id="password"
-                      name="password"
-                      type="password"
-                      required
-                      className="block w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
                   </div>
-                </div>
+                )}
 
                 {!isLogin && (
                   <div className="animate-slide-in-bottom delay-400">
@@ -686,20 +895,17 @@ const LoginPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setIsLogin(!isLogin);
+                    const nextIsLogin = !isLogin;
+                    setIsLogin(nextIsLogin);
                     setError('');
-                    if (!isLogin) {
+                    if (nextIsLogin) {
+                      resetOtpState('signup');
                       setFullName('');
                       setProfileImage('');
                       setProfileImagePreview('');
-                      setAddress({
-                        street: '',
-                        city: '',
-                        state: '',
-                        pinCode: 0,
-                        country: '',
-                        phoneNumber: 0,
-                      });
+                      setAddress({ ...initialAddressState });
+                    } else {
+                      resetOtpState('login');
                     }
                   }}
                   className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:underline"

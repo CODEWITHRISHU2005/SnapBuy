@@ -61,10 +61,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/ott/**",
+                                "/api/otp/**",
                                 "/login/oauth2/code/google/**",
                                 "/swagger-ui/**",
-                                "/favicon.ico",
-                                "/error",
                                 "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )

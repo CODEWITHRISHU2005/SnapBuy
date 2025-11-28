@@ -8,6 +8,8 @@ import type {
   OrderResponse,
   StripeRequest,
   StripeResponse,
+  OtpRequest,
+  OtpResponse,
 } from '../types';
 const getStoredToken = (key: string) => {
   try {
@@ -129,6 +131,13 @@ export const chatAPI = {
 export const ottAPI = {
   send: (username: string) => api.post<string>(`/ott/sent?email=${encodeURIComponent(username)}`),
   login: (token: string) => api.post<JwtResponse>(`/ott/login?token=${encodeURIComponent(token)}`),
+};
+
+export const otpAPI = {
+  // All endpoints now use OtpRequest (otp field is optional for send/resend)
+  send: (payload: OtpRequest) => api.post<OtpResponse>('/otp/send', payload),
+  verify: (payload: OtpRequest) => api.post<OtpResponse>('/otp/verify', payload),
+  resend: (payload: OtpRequest) => api.post<OtpResponse>('/otp/resend', payload),
 };
 
 export default api;

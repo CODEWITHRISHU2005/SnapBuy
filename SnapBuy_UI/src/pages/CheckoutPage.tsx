@@ -20,7 +20,7 @@ const CheckoutPage: React.FC = () => {
     state: '',
     pinCode: '',
     country: '',
-    phoneNumber: 0,
+    phoneNumber: '',
   });
   const [customerName, setCustomerName] = useState(user?.name ?? '');
   const [customerEmail, setCustomerEmail] = useState(user?.email ?? '');

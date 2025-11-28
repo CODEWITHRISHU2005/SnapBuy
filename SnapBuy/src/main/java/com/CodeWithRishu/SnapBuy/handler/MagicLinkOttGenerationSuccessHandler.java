@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 @RequiredArgsConstructor
 public class MagicLinkOttGenerationSuccessHandler implements OneTimeTokenGenerationSuccessHandler {
+
     private final CustomUserDetailsService userDetailsService;
     private final MailSender mailSender;
 

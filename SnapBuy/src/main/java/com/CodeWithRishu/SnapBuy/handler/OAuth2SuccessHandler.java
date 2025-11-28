@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Set;
 
 @Component
@@ -78,9 +80,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String image = oAuth2User.getAttribute("picture");
 
         return userRepository.findByEmail(email).map(existingUser -> {
-            existingUser.setName(name);
-            existingUser.setProfileImage(image.getBytes());
+            if(existingUser.getName() == null) existingUser.setName(name);
+            if(existingUser.getProfileImage() == null) existingUser.setProfileImage(image.getBytes());
             existingUser.setProvider(Provider.valueOf(registrationId.toUpperCase()));
+
             return userRepository.save(existingUser);
         }).orElseGet(() -> {
             User newUser = User.builder()

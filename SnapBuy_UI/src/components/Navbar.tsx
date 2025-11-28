@@ -31,7 +31,7 @@ const Navbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
   const primaryLinks = [
     {
-      label: 'Discover',
+      label: 'Home',
       path: '/',
     },
   ];

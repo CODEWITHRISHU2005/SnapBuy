@@ -28,7 +28,8 @@ export interface User {
 
 export interface AuthRequest {
   email: string;
-  password: string;
+  phone: string;
+  otp: string;
 }
 
 export interface JwtResponse {
@@ -90,4 +91,22 @@ export interface StripeResponse {
   message?: string;
   url?: string;
   status?: string;
+}
+
+// Backend OtpRequest - all operations use this now
+// Note: otp field is optional for /send and /resend operations
+export interface OtpRequest {
+  phone: string;
+  email: string;
+  otp?: string;  // Optional - not needed for /send and /resend
+}
+
+// Alias for clarity in different contexts
+export type OtpSendRequest = Omit<OtpRequest, 'otp'> & { otp?: never };
+export type OtpVerifyRequest = Required<OtpRequest>;
+
+export interface OtpResponse {
+  success: boolean;
+  message: string;
+  expiresAt?: string;
 }

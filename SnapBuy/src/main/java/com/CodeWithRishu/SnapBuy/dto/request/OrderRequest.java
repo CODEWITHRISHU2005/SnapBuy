@@ -8,9 +8,9 @@ import java.util.List;
 
 public record OrderRequest(
         @NotBlank(message = "Customer name is required")
-        @NotNull(message = "Customer name cannot be null")
         String customerName,
-        @Email
+        @Email(message = "Email should be valid")
+        @NotBlank(message = "Email is required")
         String email,
         List<OrderItemRequest> items
 ) {
