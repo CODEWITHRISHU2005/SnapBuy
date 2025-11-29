@@ -1,5 +1,6 @@
 package com.CodeWithRishu.SnapBuy.service;
 
+import com.CodeWithRishu.SnapBuy.dto.response.PageResponse;
 import com.CodeWithRishu.SnapBuy.entity.Product;
 import com.CodeWithRishu.SnapBuy.exception.ResourceNotFoundException;
 import com.CodeWithRishu.SnapBuy.repository.ProductRepository;
@@ -7,10 +8,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,6 +33,10 @@ public class ProductService {
     private final ChatClient chatClient;
     private final VectorStore vectorStore;
 
+    @Lazy
+    @Autowired
+    private ProductService self;
+
     public ProductService(
             ProductRepository productRepository,
             AiImageGeneratorService aiImageGenService,
@@ -40,6 +48,7 @@ public class ProductService {
         this.vectorStore = vectorStore;
     }
 
+    @Cacheable("allProducts")
     public List<Product> getAllProduct() {
         log.info("Fetching all products");
         List<Product> products = productRepository.findAll();
@@ -47,6 +56,7 @@ public class ProductService {
         return products;
     }
 
+    @Cacheable(value = "product", key = "#id")
     public Product getProductById(long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> {
@@ -55,6 +65,15 @@ public class ProductService {
                 });
     }
 
+    @Caching(
+            put = {
+                    @CachePut(value = "product", key = "#result.id")
+            },
+            evict = {
+                    @CacheEvict(value = "allProducts", allEntries = true),
+                    @CacheEvict(value = "productsPage", allEntries = true)
+            }
+    )
     public Product addOrUpdateProduct(Product product, MultipartFile image) throws IOException {
 
         Product.ProductBuilder builder = Product.builder()
@@ -111,12 +130,23 @@ public class ProductService {
         return savedProduct;
     }
 
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "product", key = "#id"),
+                    @CacheEvict(value = "allProducts", allEntries = true),
+                    @CacheEvict(value = "productsPage", allEntries = true)
+            }
+    )
     public void deleteProduct(long id) {
         productRepository.deleteById(id);
         log.info("Product with id {} deleted successfully", id);
     }
 
-    public Page<Product> getProductsByPaginationAndSorting(int page, int size, String sortBy, String sortDirection) {
+    @Cacheable(
+            value = "productsPage",
+            key = "#page + '_' + #size + '_' + #sortBy + '_' + #sortDirection"
+    )
+    public PageResponse<Product> getProductsByPaginationAndSortingCached(int page, int size, String sortBy, String sortDirection) {
         log.info("Fetching products with pagination: page={}, size={}, sortBy={}, sortDirection={}", page, size, sortBy, sortDirection);
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
@@ -125,7 +155,16 @@ public class ProductService {
         Page<Product> productPage = productRepository.findAll(pageable);
         log.debug("Total products fetched: {}, Total pages: {}", productPage.getTotalElements(), productPage.getTotalPages());
 
-        return productPage;
+        return PageResponse.of(productPage);
+    }
+
+    public Page<Product> getProductsByPaginationAndSorting(int page, int size, String sortBy, String sortDirection) {
+        PageResponse<Product> response = self.getProductsByPaginationAndSortingCached(page, size, sortBy, sortDirection);
+
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return new PageImpl<>(response.getContent(), pageable, response.getTotalElements());
     }
 
     public List<Product> searchProducts(String keyword) {

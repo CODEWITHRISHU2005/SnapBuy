@@ -16,6 +16,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -39,6 +41,7 @@ public class OrderService {
     private final UserRepository userRepository;
 
     @Transactional
+    @CacheEvict(value = "allOrders", allEntries = true)
     public OrderResponse placeOrder(OrderRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -171,6 +174,7 @@ public class OrderService {
     }
 
     @Transactional
+    @Cacheable("allOrders")
     public List<OrderResponse> getAllOrderResponses() {
 
         List<Order> orders = orderRepository.findAll();

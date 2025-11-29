@@ -7,6 +7,7 @@
 # You can add other services your application may depend on here, such as a
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
+
 services:
   server:
     build:
@@ -20,6 +21,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_started
     env_file:
       - .env
 
@@ -49,6 +52,21 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  # Redis service for caching
+
+  redis:
+    image: 'redis:7.0-alpine'
+    container_name: SnapBuy-Redis
+    ports:
+      - "6379:6379"
+    networks:
+      - s-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   s-network:
