@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { productAPI } from '../services/api';
 import type { Product } from '../types';
 import { Search, ShoppingCart, ArrowRight, Sparkles, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
@@ -20,39 +20,34 @@ const HomePage: React.FC = () => {
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [activeCategory, setActiveCategory] = useState('All');
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchSectionRef = useRef<HTMLDivElement>(null);
 
-  const focusSearchBar = () => {
-    if (searchSectionRef.current) {
-      searchSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-    if (searchInputRef.current) {
-      searchInputRef.current.focus();
-      searchInputRef.current.select();
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [searchParams] = useSearchParams();
+  const productsSectionRef = useRef<HTMLDivElement>(null);
+
+  const scrollToProducts = () => {
+    if (productsSectionRef.current) {
+      productsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
   useEffect(() => {
-    if (!searchQuery) {
+    const query = searchParams.get('q');
+    if (query) {
+      setSearchQuery(query);
+      searchProducts(query);
+    } else {
+      setSearchQuery('');
       fetchProducts();
     }
-  }, [page, size, sortBy, sortDirection, activeCategory]);
+  }, [page, size, sortBy, sortDirection, activeCategory, searchParams]);
 
   useEffect(() => {
     // Initial fetch handled by the dependency array above if searchQuery is empty
     // If we want to ensure it runs on mount regardless, the above covers it since initial state is set.
   }, []);
 
-  useEffect(() => {
-    const state = location.state as { focusSearch?: number } | null;
-    if (state?.focusSearch) {
-      focusSearchBar();
-      navigate(location.pathname, { replace: true });
-    }
-  }, [location, navigate]);
+
 
   const fetchProducts = async () => {
     try {
@@ -89,20 +84,7 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      searchProducts(searchQuery);
-    } else {
-      setPage(0); // Reset to first page when clearing search
-      fetchProducts();
-    }
-  };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
 
   const handleAddToCart = (product: Product) => {
     if (!isAuthenticated) {
@@ -154,7 +136,7 @@ const HomePage: React.FC = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-elastic-slide delay-200">
                 <button 
-                  onClick={() => focusSearchBar()}
+                  onClick={scrollToProducts}
                   className="group relative px-8 py-4 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold shadow-2xl shadow-indigo-500/40 hover:shadow-indigo-500/60 hover:shadow-3xl hover:-translate-y-1.5 transition-all duration-300 flex items-center justify-center border border-indigo-400/30 overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 active:scale-95"
                 >
                   <span className="relative z-10 flex items-center">
@@ -201,32 +183,10 @@ const HomePage: React.FC = () => {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Search and Filter Bar */}
-        <div ref={searchSectionRef} className="sticky top-20 z-30 mb-12 animate-elastic-slide delay-300">
+        <div ref={productsSectionRef} className="sticky top-20 z-30 mb-12 animate-elastic-slide delay-300">
           <div className="glass-enhanced p-6 rounded-2xl shadow-2xl border border-white/60 dark:border-slate-700/50 backdrop-blur-xl hover:shadow-3xl transition-all duration-500">
-            <div className="flex flex-col md:flex-row gap-5 items-center justify-between">
-              <div className="relative w-full md:flex-1 md:max-w-2xl group flex gap-2">
-                <div className="relative flex-1">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors">
-                    <Search className="h-5 w-5" />
-                  </div>
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Search products..."
-                    className="block w-full pl-12 pr-4 py-3.5 bg-white/90 dark:bg-slate-800/90 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-600 font-medium input-glow shadow-sm"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                  />
-                </div>
-                <button
-                  onClick={handleSearch}
-                  className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center gap-2 whitespace-nowrap border border-indigo-400/30"
-                >
-                  <Search className="h-5 w-5" />
-                  <span className="hidden sm:inline">Search</span>
-                </button>
-              </div>
+              <div className="flex flex-col md:flex-row gap-5 items-center justify-between">
+                {/* Categories */}
 
               <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
                 {categories.map((category) => (
@@ -315,7 +275,12 @@ const HomePage: React.FC = () => {
               </p>
               {(searchQuery || activeCategory !== 'All') && (
                 <button
-                  onClick={() => { setSearchQuery(''); setActiveCategory('All'); setPage(0); }}
+                  onClick={() => { 
+                    setSearchQuery(''); 
+                    setActiveCategory('All'); 
+                    setPage(0);
+                    navigate('/'); // Clear URL query
+                  }}
                   className="text-sm px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold transition-all duration-200 hover:scale-105"
                 >
                   Clear all filters
@@ -345,7 +310,12 @@ const HomePage: React.FC = () => {
               We couldn't find any products matching your criteria. Try adjusting your search or filters.
             </p>
             <button
-              onClick={() => { setSearchQuery(''); setActiveCategory('All'); setPage(0); }}
+              onClick={() => { 
+                setSearchQuery(''); 
+                setActiveCategory('All'); 
+                setPage(0);
+                navigate('/');
+              }}
               className="btn-ripple mt-6 px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/30 hover:from-indigo-700 hover:to-purple-700 hover:scale-105 transition-all duration-300"
             >
               Clear Filters

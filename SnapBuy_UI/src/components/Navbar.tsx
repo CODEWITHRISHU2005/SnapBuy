@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
@@ -14,9 +14,20 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
-  const handleSearchClick = () => {
-    navigate('/', { state: { focusSearch: Date.now() } });
-    setIsMobileMenuOpen(false);
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  React.useEffect(() => {
+    const query = searchParams.get('q');
+    setSearchQuery(query || '');
+  }, [searchParams]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/?q=${encodeURIComponent(searchQuery)}`);
+      setIsMobileMenuOpen(false);
+    }
   };
 
   const handleAuthNavigation = (path: string) => {
@@ -73,6 +84,23 @@ const Navbar: React.FC = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
+            {/* Search Bar */}
+            <form 
+              onSubmit={handleSearch}
+              className="hidden lg:flex items-center relative group"
+            >
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search products..."
+                  className="w-96 pl-10 pr-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-white placeholder-slate-400 focus:outline-none focus:bg-white/10 focus:border-white/30 focus:w-[32rem] transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.2)] focus:shadow-[0_12px_32px_rgba(236,72,153,0.25)]"
+                />
+                <Search className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:text-white transition-colors" />
+              </div>
+            </form>
+
             {primaryLinks.map((link) => (
               <Link key={link.path} to={link.path} className={navLinkClass(link.path)} aria-current={isActive(link.path) ? 'page' : undefined}>
                 <span>{link.label}</span>
@@ -81,16 +109,6 @@ const Navbar: React.FC = () => {
                 )}
               </Link>
             ))}
-
-            {/* Search CTA */}
-            <button
-              className="group hidden lg:flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 text-sm font-medium text-slate-200 hover:text-white hover:border-white/30 transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_12px_32px_rgba(236,72,153,0.35)] hover:-translate-y-0.5 bg-white/5"
-              aria-label="Search"
-              onClick={handleSearchClick}
-            >
-              <Search className="w-4 h-4 text-slate-300 group-hover:text-white" />
-              <span>Search</span>
-            </button>
 
             {user?.roles?.includes('ADMIN') && (
               <button
@@ -313,13 +331,18 @@ const Navbar: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-slate-950/95 backdrop-blur-2xl border-t border-white/10 shadow-[0_18px_40px_rgba(0,0,0,0.7)]">
           <div className="px-2 pt-3 pb-4 space-y-2 sm:px-4">
-            <button
-              onClick={handleSearchClick}
-              className="w-full text-left px-4 py-2 rounded-xl text-base font-semibold text-slate-200 hover:text-white hover:bg-white/5 transition-all flex items-center gap-2 border border-white/5"
-            >
-              <Search className="w-5 h-5 text-slate-300" />
-              Search Products
-            </button>
+            <form onSubmit={handleSearch} className="px-4 py-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search products..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-base text-white placeholder-slate-400 focus:outline-none focus:bg-white/10 focus:border-white/30 transition-all"
+                />
+                <Search className="absolute left-3.5 top-3 w-5 h-5 text-slate-400" />
+              </div>
+            </form>
             <Link
               to="/"
               className="block px-4 py-2 rounded-xl text-base font-semibold text-slate-200 hover:text-white hover:bg-white/5 transition-all"

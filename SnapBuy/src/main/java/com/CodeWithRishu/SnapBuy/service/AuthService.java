@@ -52,4 +52,5 @@ public class AuthService {
         repository.save(user);
         log.info("Google user '{}' added successfully", user.getEmail());
     }
+
 }

@@ -24,11 +24,11 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 public class AuthController {
+
     private final JwtService jwtService;
     private final OtpService otpService;
     private final AuthService authService;
     private final RefreshTokenService refreshTokenService;
-    private final AuthenticationManager authenticationManager;
 
     @PostMapping("/signIn")
     public JwtResponse authenticateAndGetToken(@Valid @RequestBody OtpRequest otpRequest) {
