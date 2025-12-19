@@ -23,6 +23,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    environment:
+      - DATASOURCE_URL=${DATASOURCE_URL}
+      - DATASOURCE_USERNAME=${DATASOURCE_USERNAME}
+      - DATASOURCE_PASSWORD=${DATASOURCE_PASSWORD}
     env_file:
       - .env
     restart: unless-stopped
@@ -72,4 +76,4 @@ services:
 
 networks:
   s-network:
-    driver: bridge]
+    driver: bridge

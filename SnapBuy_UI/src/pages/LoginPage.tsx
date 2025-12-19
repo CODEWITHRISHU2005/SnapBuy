@@ -322,7 +322,7 @@ const LoginPage: React.FC = () => {
   const handleGoogleLogin = () => {
     // The frontend must redirect to the authorization endpoint to START the flow.
     // Spring Security will then redirect to Google with the configured redirect-uri (login/oauth2/code/google)
-    window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+    window.location.href = 'https://snapbuy-production.up.railway.app/oauth2/authorization/google';
   };
 
   const isLoginOtpSending = loginOtpStatus === 'sending';

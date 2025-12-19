@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
 @SpringBootApplication
-@CrossOrigin(origins = "http://localhost:5000")
+@CrossOrigin(origins = "https://snap-buy-app.vercel.app")
 public class SnapBuyApplication {
 
     public static void main(String[] args) {

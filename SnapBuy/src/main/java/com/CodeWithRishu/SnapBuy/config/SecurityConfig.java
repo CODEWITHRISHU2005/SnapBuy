@@ -33,6 +33,7 @@ import java.util.Map;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
     private final UserDetailsService userDetailsService;
     private final CustomUserDetailsService customUserDetailsService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
@@ -134,7 +135,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("https://video-streaming-app-lac.vercel.app/", "http://localhost:5000"));
+        configuration.setAllowedOrigins(Arrays.asList("https://snap-buy-app.vercel.app", "http://localhost:5000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
         configuration.setAllowCredentials(true);
