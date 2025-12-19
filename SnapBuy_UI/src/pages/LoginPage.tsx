@@ -899,13 +899,13 @@ const LoginPage: React.FC = () => {
                     setIsLogin(nextIsLogin);
                     setError('');
                     if (nextIsLogin) {
-                      resetOtpState('signup');
+                      resetOtpState();
                       setFullName('');
                       setProfileImage('');
                       setProfileImagePreview('');
                       setAddress({ ...initialAddressState });
                     } else {
-                      resetOtpState('login');
+                      resetOtpState();
                     }
                   }}
                   className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:underline"

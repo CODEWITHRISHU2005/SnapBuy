@@ -25,6 +25,7 @@ services:
         condition: service_started
     env_file:
       - .env
+    restart: unless-stopped
 
   # The commented out section below is an example of how to define a SQL
   # database that your application can use. `depends_on` tells Docker Compose to
@@ -52,9 +53,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    restart: unless-stopped
 
   # Redis service for caching
-
   redis:
     image: 'redis:7.0-alpine'
     container_name: SnapBuy-Redis
@@ -67,7 +68,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
 networks:
   s-network:
-    driver: bridge
+    driver: bridge]
