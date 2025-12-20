@@ -67,13 +67,14 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/ott/**",
                                 "/api/otp/**",
+                                "/error",
                                 "/favicon.ico",
                                 "/api/login/oauth2/code/google/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .oauth2Login(oauth2 ->
                         oauth2
