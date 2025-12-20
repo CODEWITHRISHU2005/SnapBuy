@@ -99,33 +99,33 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(builder.build());
 
-        String content = String.format("""
-                        Product Name: %s
-                        Description: %s
-                        Brand: %s
-                        Category: %s
-                        Price: %.2f
-                        Release Date: %s
-                        Available: %s
-                        Stock: %s
-                        """,
-                savedProduct.getName(),
-                savedProduct.getDescription(),
-                savedProduct.getBrand(),
-                savedProduct.getCategory(),
-                savedProduct.getPrice(),
-                savedProduct.getReleaseDate(),
-                savedProduct.isProductAvailable(),
-                savedProduct.getStockQuantity()
-        );
-
-        Document document = new Document(
-                UUID.randomUUID().toString(),
-                content,
-                Map.of("productId", String.valueOf(savedProduct.getId()))
-        );
-
-        vectorStore.add(List.of(document));
+//        String content = String.format("""
+//                        Product Name: %s
+//                        Description: %s
+//                        Brand: %s
+//                        Category: %s
+//                        Price: %.2f
+//                        Release Date: %s
+//                        Available: %s
+//                        Stock: %s
+//                        """,
+//                savedProduct.getName(),
+//                savedProduct.getDescription(),
+//                savedProduct.getBrand(),
+//                savedProduct.getCategory(),
+//                savedProduct.getPrice(),
+//                savedProduct.getReleaseDate(),
+//                savedProduct.isProductAvailable(),
+//                savedProduct.getStockQuantity()
+//        );
+//
+//        Document document = new Document(
+//                UUID.randomUUID().toString(),
+//                content,
+//                Map.of("productId", String.valueOf(savedProduct.getId()))
+//        );
+//
+//        vectorStore.add(List.of(document));
 
         return savedProduct;
     }

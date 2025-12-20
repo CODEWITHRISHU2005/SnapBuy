@@ -339,11 +339,9 @@ const LoginPage: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://snapbuy-production.up.railway.app';
+    const API_URL = import.meta.env.VITE_API_BASE_URL;
     
-    // Spring Security's default entry point for Google login
-    // Note: If your backend is behind an /api prefix, ensure it's included here
-    window.location.href = `${API_URL}/oauth2/authorization/google`;
+    window.location.href = `${API_URL}/login/oauth2/code/google`;
   };
 
   const isLoginOtpSending = loginOtpStatus === 'sending';
