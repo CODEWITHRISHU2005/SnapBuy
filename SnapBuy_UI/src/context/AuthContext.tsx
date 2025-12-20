@@ -66,6 +66,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
+    // Handle OAuth2 redirect to root or other non-callback pages
+    // The backend might redirect to /?accessToken=...&refreshToken=...
+    if (!window.location.pathname.startsWith('/oauth2/callback')) {
+      const params = new URLSearchParams(window.location.search);
+      const urlAccessToken = params.get('accessToken');
+      const urlRefreshToken = params.get('refreshToken');
+
+      if (urlAccessToken && urlRefreshToken) {
+        try {
+          // Store tokens immediately
+          localStorage.setItem('accessToken', urlAccessToken);
+          localStorage.setItem('refreshToken', urlRefreshToken);
+          
+          // Clear any stale user data to ensure clean hydration
+          localStorage.removeItem('user');
+
+          // Clean up the URL to remove sensitive tokens
+          const newUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, document.title, newUrl);
+        } catch (e) {
+          console.error("Error processing URL tokens", e);
+        }
+      }
+    }
+
     const token = getToken('accessToken');
     if (token) {
       try {

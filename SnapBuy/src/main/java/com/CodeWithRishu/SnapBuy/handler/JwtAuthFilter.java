@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -26,6 +28,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
     private final JwtService jwtService;
 
+    private static final List<String> EXCLUDED_PATHS = Arrays.asList(
+            "/api/auth/",
+            "/api/ott/",
+            "/api/otp/",
+            "/api/login/oauth2/code/",
+            "/error",
+            "/favicon.ico",
+            "/swagger-ui/",
+            "/v3/api-docs/"
+    );
+
     @Override
     protected void doFilterInternal(
             @Nonnull HttpServletRequest request,
@@ -34,9 +47,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String requestURI = request.getRequestURI();
-        String authHeader = request.getHeader("Authorization");
 
         log.info("Processing request: {} {}", request.getMethod(), requestURI);
+
+        if (shouldSkipFilter(requestURI)) {
+            log.info("Skipping JWT authentication for excluded path: {}", requestURI);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String authHeader = request.getHeader("Authorization");
         log.info("Authorization header present: {}", authHeader != null);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -70,7 +90,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     log.warn("Token validation failed for user: {}", username);
                 }
             } else {
-                log.info("Authentication already exists");
+                log.info("Authentication already exists or username is null");
             }
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
             log.error("JWT token is expired");
@@ -85,6 +105,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean shouldSkipFilter(String path) {
+        return EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
     }
 
 }

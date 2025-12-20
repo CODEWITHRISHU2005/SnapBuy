@@ -79,6 +79,9 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 ->
                         oauth2
                                 .loginPage("/login")
+                                .redirectionEndpoint(redirection -> redirection
+                                        .baseUri("/api/login/oauth2/code/*")
+                                )
                                 .successHandler(oAuth2SuccessHandler)
                                 .failureHandler((req, resp, e) -> {
                                     resp.setStatus(401);
