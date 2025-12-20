@@ -226,6 +226,15 @@ const LoginPage: React.FC = () => {
           otp: loginOtp.trim(),
         });
       } else {
+        const sanitizedAddress = Object.fromEntries(
+          Object.entries(address).map(([key, value]) => [key, value.trim() === '' ? undefined : value.trim()])
+        );
+        
+        // Remove undefined keys to create a clean object
+        const finalAddress = Object.keys(sanitizedAddress).length > 0
+          ? JSON.parse(JSON.stringify(sanitizedAddress)) // Quick way to strip undefined
+          : undefined;
+
         const signupData = {
           id: 0,
           name: fullName,
@@ -234,7 +243,7 @@ const LoginPage: React.FC = () => {
           profileImage: profileImage || undefined,
           adminKey: adminKey || undefined,
           roles: [adminKey === 'Rishabh@2005' ? Role.ADMIN : Role.USER],
-          userAddress: address
+          userAddress: finalAddress
         };
         console.log('Signup attempt with data:', {
           ...signupData,
