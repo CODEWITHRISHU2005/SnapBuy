@@ -27,7 +27,7 @@ public class ProductController {
         return new ResponseEntity<>(productService.getAllProduct(), HttpStatus.OK);
     }
 
-    @GetMapping("/pagination&sorting")
+    @GetMapping("/pagination-sorting")
     public ResponseEntity<Page<Product>> getProductsByPaginationAndSorting(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
