@@ -66,6 +66,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/products/pagination-sorting").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/search").permitAll()
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/ott/**",

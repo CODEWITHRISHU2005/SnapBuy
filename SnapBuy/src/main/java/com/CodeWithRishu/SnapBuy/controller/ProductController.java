@@ -83,7 +83,6 @@ public class ProductController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_USER')")
     public ResponseEntity<List<Product>> searchProducts(@RequestParam String keyword){
         List<Product> products = productService.searchProducts(keyword);
         log.info("searching with {}", keyword);
