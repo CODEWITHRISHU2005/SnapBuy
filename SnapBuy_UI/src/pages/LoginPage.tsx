@@ -322,7 +322,13 @@ const LoginPage: React.FC = () => {
   const handleGoogleLogin = () => {
     // The frontend must redirect to the authorization endpoint to START the flow.
     // Spring Security will then redirect to Google with the configured redirect-uri (login/oauth2/code/google)
-    window.location.href = 'https://snapbuy-production.up.railway.app/oauth2/authorization/google';
+    // Note: Backend deployed on Railway seems to be accessible via /api prefix based on vite proxy config
+    const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://snapbuy-production.up.railway.app';
+    
+    // We explicitly pass the redirect_uri to match the backend configuration:
+    // spring.security.oauth2.client.registration.google.redirect-uri=.../api/login/oauth2/code/google
+    const redirectUri = `${API_URL}/api/login/oauth2/code/google`;
+    window.location.href = `${API_URL}/api/oauth2/authorization/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
   };
 
   const isLoginOtpSending = loginOtpStatus === 'sending';
