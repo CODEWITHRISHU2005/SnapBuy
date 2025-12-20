@@ -32,6 +32,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             "/api/auth/",
             "/api/ott/",
             "/api/otp/",
+            "/api/products",
+            "/api/products/pagination-sorting",
             "/api/login/oauth2/code/",
             "/error",
             "/favicon.ico",
@@ -108,7 +110,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private boolean shouldSkipFilter(String path) {
-        return EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
+        return EXCLUDED_PATHS.stream()
+                .anyMatch(path::startsWith);
     }
 
 }
