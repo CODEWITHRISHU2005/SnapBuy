@@ -49,4 +49,5 @@ public class Product extends AuditEntity {
     @Lob
     @Column(length = 1000000)
     private byte[] imageData;
+
 }

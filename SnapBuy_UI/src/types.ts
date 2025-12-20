@@ -93,15 +93,12 @@ export interface StripeResponse {
   status?: string;
 }
 
-// Backend OtpRequest - all operations use this now
-// Note: otp field is optional for /send and /resend operations
 export interface OtpRequest {
   phone: string;
   email: string;
-  otp?: string;  // Optional - not needed for /send and /resend
+  otp?: string;
 }
 
-// Alias for clarity in different contexts
 export type OtpSendRequest = Omit<OtpRequest, 'otp'> & { otp?: never };
 export type OtpVerifyRequest = Required<OtpRequest>;
 
@@ -109,4 +106,40 @@ export interface OtpResponse {
   success: boolean;
   message: string;
   expiresAt?: string;
+}
+
+// Product API Types
+export interface PageResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
+export interface ProductPaginationParams {
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
+}
+
+export interface GenerateDescriptionRequest {
+  name: string;
+  category: string;
+}
+
+export interface GenerateImageRequest {
+  name: string;
+  category: string;
+  description: string;
+}
+
+export interface ProductFormData {
+  product: Product;
+  imageFile?: File;
 }
