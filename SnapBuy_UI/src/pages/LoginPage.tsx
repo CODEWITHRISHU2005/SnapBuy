@@ -148,7 +148,7 @@ const LoginPage: React.FC = () => {
           name: decodedToken.sub || '',
           email: decodedToken.email || '',
           roles: decodedToken.roles || '',
-          profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture),
+          profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, decodedToken.avatar_url, decodedToken.avatar),
         };
         localStorage.setItem('user', JSON.stringify(userData));
         setUserFromToken();
@@ -252,10 +252,20 @@ const LoginPage: React.FC = () => {
       console.error('Error message:', err.response?.data?.message);
       console.error('Error status:', err.response?.status);
 
-      const errorMessage = err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
-        'Authentication failed. Please try again.';
+      let errorMessage = 'Authentication failed. Please try again.';
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        if (typeof err.response.data.error === 'object') {
+          errorMessage = err.response.data.error.message || JSON.stringify(err.response.data.error);
+        } else {
+          errorMessage = String(err.response.data.error);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
       setError(errorMessage);
 
       // Shake animation on error
@@ -304,7 +314,7 @@ const LoginPage: React.FC = () => {
         name: decodedToken.sub || '',
         email: decodedToken.email || '',
         roles: decodedToken.roles || '',
-        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture),
+        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, decodedToken.avatar_url, decodedToken.avatar),
       };
       localStorage.setItem('user', JSON.stringify(userData));
 

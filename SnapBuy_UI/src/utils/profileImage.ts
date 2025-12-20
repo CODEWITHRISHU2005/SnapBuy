@@ -9,9 +9,10 @@ const isLikelyBase64 = (value: string): boolean => {
   }
 
   // If it's very long, assume it's base64 data
-  if (cleanValue.length > 200) {
-    return true;
-  }
+  // Removed this check as it can falsely identify long URLs as base64
+  // if (cleanValue.length > 200) {
+  //   return true;
+  // }
 
   if (cleanValue.length % 4 !== 0) {
     return false;

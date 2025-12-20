@@ -104,7 +104,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           name: decodedToken.sub || storedUser.name || '',
           email: decodedToken.email || storedUser.email || '',
           roles: decodedToken.roles || '',
-          profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, storedUser.profileImage),
+          profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, decodedToken.avatar_url, decodedToken.avatar, storedUser.profileImage),
         };
         setUser(userData);
       } catch (e) {
@@ -130,7 +130,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: decodedToken.sub || credentials.email,
         email: decodedToken.email || credentials.email,
         roles: decodedToken.roles || '',
-        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture),
+        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, decodedToken.avatar_url, decodedToken.avatar),
       };
 
       localStorage.setItem('user', JSON.stringify(userData));
@@ -167,7 +167,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const newUserData: User = {
         ...userData,
         roles: decodedToken.roles || userData.roles || '',
-        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, userData.profileImage),
+        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, decodedToken.avatar_url, decodedToken.avatar, userData.profileImage),
       };
 
       console.log('Final user data being stored:', {
@@ -197,7 +197,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: decodedToken.sub || '',
         email: decodedToken.email || '',
         roles: decodedToken.roles || '',
-        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture),
+        profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, decodedToken.avatar_url, decodedToken.avatar),
       };
 
       localStorage.setItem('user', JSON.stringify(userData));
@@ -228,7 +228,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           name: decodedToken.sub || storedUser.name || '',
           email: decodedToken.email || storedUser.email || '',
           roles: decodedToken.roles || storedUser.roles || '',
-          profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, storedUser.profileImage),
+          profileImage: resolveProfileImage(decodedToken.profileImage, decodedToken.picture, decodedToken.avatar_url, decodedToken.avatar, storedUser.profileImage),
         };
         setUser(userData);
       } catch (e) {

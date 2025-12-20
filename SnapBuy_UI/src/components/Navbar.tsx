@@ -158,6 +158,7 @@ const Navbar: React.FC = () => {
                       <img
                         src={user.profileImage}
                         alt={user.name}
+                        referrerPolicy="no-referrer"
                         className="w-9 h-9 rounded-full object-cover border border-white/20 shadow-[0_8px_20px_rgba(0,0,0,0.4)]"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -190,6 +191,7 @@ const Navbar: React.FC = () => {
                         <img
                           src={user.profileImage}
                           alt={user.name}
+                          referrerPolicy="no-referrer"
                           className="w-11 h-11 rounded-full object-cover border border-white/20"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
