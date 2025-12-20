@@ -68,7 +68,7 @@ public class SecurityConfig {
                                 "/api/ott/**",
                                 "/api/otp/**",
                                 "/favicon.ico",
-                                "/login/oauth2/code/google/**",
+                                "/api/login/oauth2/code/google/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
