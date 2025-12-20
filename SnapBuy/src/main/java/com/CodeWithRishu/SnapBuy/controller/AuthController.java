@@ -31,7 +31,7 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/signIn")
-    public JwtResponse authenticateAndGetToken(@Valid @RequestBody OtpRequest otpRequest) {
+    public JwtResponse authenticateAndGetToken(@RequestBody OtpRequest otpRequest) {
         OtpResponse verifyOtpResponse = otpService.verifyOtp(otpRequest);
 
         if (!verifyOtpResponse.success()) {
@@ -50,7 +50,7 @@ public class AuthController {
     }
 
     @PostMapping("/signUp")
-    public JwtResponse registerAndGetAccessAndRefreshToken(@Valid @RequestBody User userInfo) {
+    public JwtResponse registerAndGetAccessAndRefreshToken(@RequestBody User userInfo) {
         authService.register(userInfo);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userInfo.getEmail());
 
