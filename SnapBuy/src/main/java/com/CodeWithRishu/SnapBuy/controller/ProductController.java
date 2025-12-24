@@ -59,12 +59,12 @@ public class ProductController {
         return new ResponseEntity<>(aiDesc, HttpStatus.OK);
     }
 
-    @PostMapping("/generate-image")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<?> generateImage(@RequestParam String name, @RequestParam String category, @RequestParam String description) {
-        byte[] aiImage = productService.generateImage(name, category, description);
-        return new ResponseEntity<>(aiImage, HttpStatus.OK);
-    }
+//    @PostMapping("/generate-image")
+//    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+//    public ResponseEntity<?> generateImage(@RequestParam String name, @RequestParam String category, @RequestParam String description) {
+//        byte[] aiImage = productService.generateImage(name, category, description);
+//        return new ResponseEntity<>(aiImage, HttpStatus.OK);
+//    }
 
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")

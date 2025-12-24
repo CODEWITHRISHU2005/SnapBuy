@@ -341,7 +341,7 @@ const LoginPage: React.FC = () => {
   const handleGoogleLogin = () => {
     const API_URL = import.meta.env.VITE_API_BASE_URL;
     
-    window.location.href = `${API_URL}/api/oauth2/authorization/google`;
+    window.location.href = `${API_URL}/api/login/oauth2/code/google`;
   };
 
   const isLoginOtpSending = loginOtpStatus === 'sending';

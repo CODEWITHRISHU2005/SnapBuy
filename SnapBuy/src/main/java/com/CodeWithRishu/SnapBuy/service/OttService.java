@@ -1,8 +1,8 @@
 package com.CodeWithRishu.SnapBuy.service;
 
+import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
 import com.CodeWithRishu.SnapBuy.entity.OttToken;
 import com.CodeWithRishu.SnapBuy.entity.User;
-import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
 import com.CodeWithRishu.SnapBuy.repository.OttTokenRepository;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
