@@ -341,7 +341,8 @@ const LoginPage: React.FC = () => {
   const handleGoogleLogin = () => {
     const API_URL = import.meta.env.VITE_API_BASE_URL;
     
-    window.location.href = `${API_URL}/login/oauth2/code/google`;
+    // Correct OAuth2 authorization endpoint for Spring Security
+    window.location.href = `https://snapbuy-production.up.railway.app/oauth2/authorization/google`;
   };
 
   const isLoginOtpSending = loginOtpStatus === 'sending';
