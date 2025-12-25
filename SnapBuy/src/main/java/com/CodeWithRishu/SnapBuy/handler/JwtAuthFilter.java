@@ -39,7 +39,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     );
 
     private static final List<String> EXCLUDED_EXACT = List.of(
-            "/api/products",
             "/api/products/search",
             "/api/products/pagination-sorting"
     );
