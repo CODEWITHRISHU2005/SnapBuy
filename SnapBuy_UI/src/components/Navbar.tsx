@@ -2,14 +2,14 @@ import React, { Fragment } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { useTheme } from '../context/ThemeContext';
-import { ShoppingCart, User, LogOut, Package, Plus, Menu as MenuIcon, X, Sun, Moon, Search, Shield } from 'lucide-react';
+
+import { ShoppingCart, User, LogOut, Package, Plus, Menu as MenuIcon, X, Search, Shield } from 'lucide-react';
 import { Menu, Transition } from '@headlessui/react';
 
 const Navbar: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const { getTotalItems } = useCart();
-  const { theme, toggleTheme } = useTheme();
+
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
@@ -40,19 +40,7 @@ const Navbar: React.FC = () => {
   };
 
   const isActive = (path: string) => location.pathname === path;
-  const primaryLinks = [
-    {
-      label: 'Home',
-      path: '/',
-    },
-  ];
 
-  const navLinkClass = (path: string) =>
-    `group relative px-4 py-2 rounded-full text-sm font-semibold tracking-wide transition-all duration-300 ${
-      isActive(path)
-        ? 'text-slate-900 dark:text-white bg-slate-200 dark:bg-white/10 shadow-lg shadow-purple-500/20 dark:shadow-[0_8px_32px_rgba(168,85,247,0.35)] backdrop-blur border border-slate-300 dark:border-white/10'
-        : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent'
-    }`;
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 relative overflow-visible shadow-xl shadow-slate-300/30 dark:shadow-purple-900/30 transition-shadow duration-300">
@@ -95,20 +83,11 @@ const Navbar: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search products..."
-                  className="w-96 pl-10 pr-4 py-2 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:bg-slate-200 dark:focus:bg-white/10 focus:border-slate-400 dark:focus:border-white/30 focus:w-[32rem] transition-all duration-300 shadow-md dark:shadow-[0_8px_24px_rgba(0,0,0,0.2)] focus:shadow-lg focus:shadow-purple-500/20 dark:focus:shadow-[0_12px_32px_rgba(236,72,153,0.25)]"
+                  className="w-[32rem] pl-10 pr-4 py-2 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:bg-slate-200 dark:focus:bg-white/10 focus:border-slate-400 dark:focus:border-white/30 focus:w-[48rem] transition-all duration-300 shadow-md dark:shadow-[0_8px_24px_rgba(0,0,0,0.2)] focus:shadow-lg focus:shadow-purple-500/20 dark:focus:shadow-[0_12px_32px_rgba(236,72,153,0.25)]"
                 />
                 <Search className="absolute left-3.5 w-4 h-4 text-slate-500 dark:text-slate-400 pointer-events-none group-focus-within:text-slate-700 dark:group-focus-within:text-white transition-colors" />
               </div>
             </form>
-
-            {primaryLinks.map((link) => (
-              <Link key={link.path} to={link.path} className={navLinkClass(link.path)} aria-current={isActive(link.path) ? 'page' : undefined}>
-                <span>{link.label}</span>
-                {isActive(link.path) && (
-                  <span className="absolute inset-x-3 -bottom-1 h-[3px] rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 shadow-[0_0_12px_rgba(244,114,182,0.6)]" />
-                )}
-              </Link>
-            ))}
 
             {user?.roles?.includes('ADMIN') && (
               <button
@@ -123,16 +102,6 @@ const Navbar: React.FC = () => {
                 Add Product
               </button>
             )}
-
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="group relative p-2 rounded-full text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-300 border border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/30 hover:shadow-md hover:shadow-purple-500/20 dark:hover:shadow-[0_8px_20px_rgba(236,72,153,0.25)]"
-              aria-label="Toggle Theme"
-            >
-              <span className="absolute inset-0 rounded-full bg-purple-500/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-              {theme === 'light' ? <Moon className="w-5 h-5 relative text-slate-700 dark:text-slate-200" /> : <Sun className="w-5 h-5 relative text-slate-700 dark:text-slate-200" />}
-            </button>
 
             {/* Cart Icon */}
             <button
@@ -308,12 +277,7 @@ const Navbar: React.FC = () => {
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-3">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/30 transition-colors"
-            >
-              {theme === 'light' ? <Moon className="w-5 h-5 text-slate-700 dark:text-slate-200" /> : <Sun className="w-5 h-5 text-slate-700 dark:text-slate-200" />}
-            </button>
+
 
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

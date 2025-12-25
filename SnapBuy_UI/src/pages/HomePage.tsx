@@ -23,7 +23,50 @@ const HomePage: React.FC = () => {
 
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchParams] = useSearchParams();
+
   const productsSectionRef = useRef<HTMLDivElement>(null);
+
+  const bannerData = [
+    {
+      url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop",
+      title: "Premium Footwear",
+      subtitle: "New Arrival"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",
+      title: "Luxury Timepieces",
+      subtitle: "Exclusive"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=2070&q=80",
+      title: "High-Fidelity Audio",
+      subtitle: "Best Seller"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop",
+      title: "Modern Living",
+      subtitle: "Interior Design"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=2070&auto=format&fit=crop",
+      title: "Summer Collection",
+      subtitle: "Trending Now"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1498049389760-14cc531298ec?q=80&w=2070&auto=format&fit=crop",
+      title: "Tech Essentials",
+      subtitle: "Productivity"
+    }
+  ];
+
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev + 1) % bannerData.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const scrollToProducts = () => {
     if (productsSectionRef.current) {
@@ -115,6 +158,9 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-purple-50/20 dark:from-slate-950 dark:via-indigo-950/30 dark:to-purple-950/30 transition-colors duration-500">
+      
+      {/* Categories Bar (Moved Above Banner) */}
+      {/* Filter Bar (Categories, Pagination, Sorting) */}
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-sm border-b border-slate-100 dark:border-slate-700 transition-colors duration-300">
         <div className="absolute inset-0">
@@ -123,7 +169,7 @@ const HomePage: React.FC = () => {
           <div className="absolute -bottom-[20%] left-[20%] w-[50%] h-[50%] rounded-full bg-pink-200/30 dark:bg-pink-500/10 blur-3xl animate-blob animation-delay-4000" />
         </div>
 
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-12 relative z-10">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
             <div className="flex-1 text-center lg:text-left">
               <h1 className="text-5xl lg:text-7xl font-bold font-display text-slate-900 dark:text-white mb-6 leading-tight drop-shadow-sm">
@@ -159,9 +205,9 @@ const HomePage: React.FC = () => {
               <div className="relative w-full max-w-lg mx-auto transform rotate-y-12 rotate-x-6 hover:rotate-0 transition-transform duration-700 preserve-3d">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl blur-2xl opacity-30 dark:opacity-40 transform translate-z-[-20px]"></div>
                 <img
-                  src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=2070&auto=format&fit=crop"
-                  alt="Hero Product"
-                  className="rounded-3xl shadow-2xl border-4 border-white/50 dark:border-slate-700/50 backdrop-blur-sm relative z-10 w-full object-cover aspect-[4/3]"
+                  src={bannerData[currentBannerIndex].url}
+                  alt={bannerData[currentBannerIndex].title}
+                  className="rounded-3xl shadow-2xl border-4 border-white/50 dark:border-slate-700/50 backdrop-blur-sm relative z-10 w-full object-cover aspect-[4/3] transition-opacity duration-500"
                 />
                 {/* Floating Elements */}
                 <div className="absolute -top-10 -right-10 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-xl animate-bounce delay-700 z-20">
@@ -170,8 +216,8 @@ const HomePage: React.FC = () => {
                       <Sparkles className="w-6 h-6" />
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">New Arrival</p>
-                      <p className="text-sm font-bold text-slate-900 dark:text-white">Premium Audio</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{bannerData[currentBannerIndex].subtitle}</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">{bannerData[currentBannerIndex].title}</p>
                     </div>
                   </div>
                 </div>
@@ -181,82 +227,80 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Search and Filter Bar */}
-        <div ref={productsSectionRef} className="sticky top-20 z-30 mb-12 animate-elastic-slide delay-300">
-          <div className="glass-enhanced p-6 rounded-2xl shadow-2xl border border-white/60 dark:border-slate-700/50 backdrop-blur-xl hover:shadow-3xl transition-all duration-500">
-              <div className="flex flex-col md:flex-row gap-5 items-center justify-between">
-                {/* Categories */}
+      {/* Categories Bar (Moved Below Banner) */}
+      <div className="py-6 container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col md:flex-row gap-5 items-center justify-between">
+          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar justify-center md:justify-start flex-1 w-full md:w-auto">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => { setActiveCategory(category); setPage(0); }}
+                className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all duration-300 shadow-sm hover:shadow-md ${activeCategory === category
+                  ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/40 scale-105'
+                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-700'
+                  }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
 
-              <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => { setActiveCategory(category); setPage(0); }}
-                    className={`px-6 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 shadow-md hover:shadow-lg ${activeCategory === category
-                      ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-xl shadow-indigo-500/50 scale-105 border border-indigo-400/30'
-                      : 'bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 hover:text-indigo-600 dark:hover:text-indigo-400 border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700 hover:scale-105'
-                      }`}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
+          {/* Sorting & Page Size Controls */}
+          <div className="flex items-center gap-3 flex-wrap justify-center md:justify-end">
+            {/* Page Size Selector */}
+            <div className="relative group">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5 block uppercase tracking-wider">Per Page</label>
+              <select
+                value={size}
+                onChange={(e) => { setSize(Number(e.target.value)); setPage(0); }}
+                className="appearance-none bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 pr-8 text-sm text-slate-700 dark:text-slate-200 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600 shadow-sm"
+              >
+                <option value="6">6</option>
+                <option value="12">12</option>
+                <option value="24">24</option>
+                <option value="48">48</option>
+              </select>
+              <ArrowUpDown className="absolute right-2 top-[60%] w-3 h-3 text-slate-400 pointer-events-none" />
+            </div>
 
-              {/* Sorting & Page Size Controls */}
-              <div className="flex items-center gap-3 mt-4 md:mt-0 flex-wrap">
-                {/* Page Size Selector */}
-                <div className="relative group">
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 block">Items per page</label>
-                  <select
-                    value={size}
-                    onChange={(e) => { setSize(Number(e.target.value)); setPage(0); }}
-                    className="appearance-none bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 pr-10 text-slate-700 dark:text-slate-200 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600 shadow-md hover:shadow-lg min-w-[100px]"
-                  >
-                    <option value="6">6</option>
-                    <option value="12">12</option>
-                    <option value="24">24</option>
-                    <option value="48">48</option>
-                  </select>
-                  <svg className="absolute right-3 top-[58%] w-4 h-4 text-indigo-500 dark:text-indigo-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </div>
+            {/* Sort By Selector */}
+            <div className="relative group">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5 block uppercase tracking-wider">Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="appearance-none bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 pr-8 text-sm text-slate-700 dark:text-slate-200 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600 shadow-sm min-w-[100px]"
+              >
+                <option value="name">Name</option>
+                <option value="price">Price</option>
+                <option value="category">Category</option>
+              </select>
+              <ArrowUpDown className="absolute right-2 top-[60%] w-3 h-3 text-slate-400 pointer-events-none" />
+            </div>
 
-                {/* Sort By Selector */}
-                <div className="relative group">
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 block">Sort by</label>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 pr-10 text-slate-700 dark:text-slate-200 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600 shadow-md hover:shadow-lg min-w-[120px]"
-                  >
-                    <option value="name">Name</option>
-                    <option value="price">Price</option>
-                    <option value="category">Category</option>
-                  </select>
-                  <ArrowUpDown className="absolute right-3 top-[58%] w-4 h-4 text-indigo-500 dark:text-indigo-400 pointer-events-none" />
-                </div>
-
-                {/* Sort Direction Button */}
-                <div className="group">
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 block">Order</label>
-                  <button
-                    onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    className="p-2.5 rounded-xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-indigo-500 dark:hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
-                    title={`Sort ${sortDirection === 'asc' ? 'Descending' : 'Ascending'}`}
-                  >
-                    {sortDirection === 'asc' ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 16 4 4 4-4" /><path d="M7 20V4" /><path d="M11 4h4" /><path d="M11 8h7" /><path d="M11 12h10" /></svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 8 4-4 4 4" /><path d="M7 4v16" /><path d="M11 12h10" /><path d="M11 8h7" /><path d="M11 4h4" /></svg>
-                    )}
-                  </button>
-                </div>
-              </div>
+            {/* Sort Direction */}
+            <div className="group">
+               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5 block uppercase tracking-wider">Order</label>
+              <button
+                onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+                className="p-1.5 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-indigo-500 dark:hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm"
+                title={`Sort ${sortDirection === 'asc' ? 'Descending' : 'Ascending'}`}
+              >
+                {sortDirection === 'asc' ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 16 4 4 4-4" /><path d="M7 20V4" /><path d="M11 4h4" /><path d="M11 8h7" /><path d="M11 12h10" /></svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 8 4-4 4 4" /><path d="M7 4v16" /><path d="M11 12h10" /><path d="M11 8h7" /><path d="M11 4h4" /></svg>
+                )}
+              </button>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Search and Filter Bar */}
+        {/* Product Grid Anchor */}
+        <div ref={productsSectionRef} className="scroll-mt-28" />
 
         {/* Filter Results Summary */}
         {!loading && (searchQuery || activeCategory !== 'All') && (

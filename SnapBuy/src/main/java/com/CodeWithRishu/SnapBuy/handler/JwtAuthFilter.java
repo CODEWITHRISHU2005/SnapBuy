@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 @Component
@@ -28,18 +27,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
     private final JwtService jwtService;
 
-    private static final List<String> EXCLUDED_PATHS = Arrays.asList(
+    private static final List<String> EXCLUDED_PREFIXES = List.of(
             "/api/auth/",
             "/api/ott/",
             "/api/otp/",
+            "/api/login/oauth2/code/",
+            "/swagger-ui/",
+            "/v3/api-docs/",
+            "/error",
+            "/favicon.ico"
+    );
+
+    private static final List<String> EXCLUDED_EXACT = List.of(
             "/api/products",
             "/api/products/search",
-            "/api/products/pagination-sorting",
-            "/api/login/oauth2/code/",
-            "/error",
-            "/favicon.ico",
-            "/swagger-ui/",
-            "/v3/api-docs/"
+            "/api/products/pagination-sorting"
     );
 
     @Override
@@ -111,8 +113,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private boolean shouldSkipFilter(String path) {
-        return EXCLUDED_PATHS.stream()
-                .anyMatch(path::startsWith);
+        for (String exact : EXCLUDED_EXACT)
+            if (path.equals(exact)) return true;
+
+        for (String prefix : EXCLUDED_PREFIXES)
+            if (path.startsWith(prefix)) return true;
+        return false;
     }
 
 }

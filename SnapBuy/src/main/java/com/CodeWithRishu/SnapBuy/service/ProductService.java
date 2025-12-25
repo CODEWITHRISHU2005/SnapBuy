@@ -188,12 +188,21 @@ public class ProductService {
                 
                 """, name, category);
 
-        return Objects.requireNonNull(chatClient.prompt(descPrompt)
-                        .call()
-                        .chatResponse())
-                .getResult()
-                .getOutput()
-                .getText();
+        try {
+            String response = Objects.requireNonNull(chatClient.prompt(descPrompt)
+                            .call()
+                            .chatResponse())
+                    .getResult()
+                    .getOutput()
+                    .getText();
+
+            Thread.sleep(4000);
+
+            return response;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Thread interrupted during AI generation", e);
+        }
     }
 
 //    public byte[] generateImage(String name, String category, String description) {
