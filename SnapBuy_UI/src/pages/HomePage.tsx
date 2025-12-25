@@ -53,7 +53,7 @@ const HomePage: React.FC = () => {
       subtitle: "Trending Now"
     },
     {
-      url: "https://images.unsplash.com/photo-1498049389760-14cc531298ec?q=80&w=2070&auto=format&fit=crop",
+      url: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2070&auto=format&fit=crop",
       title: "Tech Essentials",
       subtitle: "Productivity"
     }

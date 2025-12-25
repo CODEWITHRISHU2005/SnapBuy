@@ -13,7 +13,6 @@ export default defineConfig({
         target: 'https://snapbuy-production.up.railway.app',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       }
     },
     hmr: {
