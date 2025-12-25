@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { productAPI } from '../services/api';
 import type { Product } from '../types';
-import { Package, DollarSign, Tag, Layers, Calendar, FileText, Upload, Plus, CheckCircle2, AlertCircle, Sparkles, Trash2 } from 'lucide-react';
+import { Package, IndianRupee, Tag, Layers, Calendar, FileText, Upload, Plus, CheckCircle2, AlertCircle, Sparkles, Trash2 } from 'lucide-react';
 
 interface ProductForm {
   name: string;
@@ -140,7 +140,7 @@ export default function AdminPage() {
         releaseDate: formData.releaseDate,
       };
       const productBlob = new Blob([JSON.stringify(productJSON)], { type: 'application/json' });
-      formDataToSend.append('product', productBlob);
+      formDataToSend.append('product', productBlob, 'product.json');
       if (image) {
         formDataToSend.append('imageFile', image);
       }
@@ -250,7 +250,7 @@ export default function AdminPage() {
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Price</label>
                     <div className="relative group input-glow">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
-                        <DollarSign className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
+                        <IndianRupee className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
                       </div>
                       <input
                         type="number"
@@ -515,7 +515,7 @@ export default function AdminPage() {
                             {product.category}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-slate-600 dark:text-slate-300">${product.price.toFixed(2)}</td>
+                        <td className="py-4 px-4 text-slate-600 dark:text-slate-300">₹{product.price.toFixed(2)}</td>
                         <td className="py-4 px-4 text-slate-600 dark:text-slate-300">{product.stockQuantity}</td>
                         <td className="py-4 px-4 text-right">
                           <button

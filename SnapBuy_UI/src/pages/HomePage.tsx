@@ -400,7 +400,7 @@ const HomePage: React.FC = () => {
                       {product.name}
                     </h3>
                     <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent ml-2">
-                      ${product.price}
+                      ₹{product.price}
                     </span>
                   </div>
                   <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2 mb-4 h-10">

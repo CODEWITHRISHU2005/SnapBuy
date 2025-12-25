@@ -206,7 +206,7 @@ const OrdersPage: React.FC = () => {
                             </div>
                           </div>
                           <div className="text-sm font-bold text-slate-900 dark:text-white">
-                            ${(item.totalPrice ?? 0).toFixed(2)}
+                            ₹{(item.totalPrice ?? 0).toFixed(2)}
                           </div>
                         </div>
                       ))}

@@ -104,9 +104,7 @@ export const productAPI = {
   search: (keyword: string) => api.get<Product[]>(`/products/search?keyword=${keyword}`),
   getPaginated: (page: number, size: number, sortBy: string, sortDirection: string) =>
     api.get<{ content: Product[], totalPages: number, totalElements: number }>(`/products/pagination-sorting?page=${page}&size=${size}&sortBy=${sortBy}&sortDirection=${sortDirection}`),
-  create: (product: FormData) => api.post<Product>('/products', product, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  create: (product: FormData) => api.post<Product>('/products', product),
   delete: (id: number) => api.delete(`/products/${id}`),
   getImage: (id: number) => api.get<Blob>(`/products/${id}/image`, { responseType: 'blob' }),
   generateDescription: (name: string, category: string) =>

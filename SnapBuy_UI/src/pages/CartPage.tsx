@@ -89,7 +89,7 @@ const CartPage: React.FC = () => {
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 line-clamp-2">{item.product.description}</p>
                     <div className="mt-3">
                       <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-                        ${item.product.price.toFixed(2)}
+                        ₹{item.product.price.toFixed(2)}
                       </span>
                       <span className="text-sm text-slate-500 dark:text-slate-400 ml-2">each</span>
                     </div>
@@ -116,7 +116,7 @@ const CartPage: React.FC = () => {
                     <div className="text-right">
                       <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Total</p>
                       <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        ₹{(item.product.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -146,7 +146,7 @@ const CartPage: React.FC = () => {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-slate-600 dark:text-slate-400 py-2">
                   <span>Subtotal</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">${getTotalPrice().toFixed(2)}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">₹{getTotalPrice().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600 dark:text-slate-400 py-2">
                   <span>Shipping</span>
@@ -154,12 +154,11 @@ const CartPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-slate-600 dark:text-slate-400 py-2">
                   <span>Tax</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">$0.00</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">₹0.00</span>
                 </div>
                 <div className="border-t-2 border-slate-200 dark:border-slate-700 pt-4 mt-4 flex justify-between items-center">
                   <span className="text-lg font-bold text-slate-900 dark:text-white">Total</span>
-                  <span className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
-                    ${getTotalPrice().toFixed(2)}
+                    ₹{getTotalPrice().toFixed(2)}
                   </span>
                 </div>
               </div>

@@ -75,7 +75,7 @@ const CheckoutPage: React.FC = () => {
             productName: `SnapBuy Order for ${customerName || 'customer'}`,
             quantity: totalQuantity,
             amount: totalAmountInCents,
-            currency: 'usd',
+            currency: 'inr',
           };
 
           const stripeResponse = await paymentAPI.initiateStripe(stripeRequest);
@@ -330,8 +330,7 @@ const CheckoutPage: React.FC = () => {
                       <p className="text-sm font-medium text-slate-900 dark:text-white line-clamp-2">{item.product.name}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Qty: {item.quantity}</p>
                     </div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white flex-shrink-0">
-                      ${(item.product.price * item.quantity).toFixed(2)}
+                      ₹{(item.product.price * item.quantity).toFixed(2)}
                     </div>
                   </div>
                 ))}
@@ -340,7 +339,7 @@ const CheckoutPage: React.FC = () => {
               <div className="border-t-2 border-slate-200 dark:border-slate-700 pt-4 space-y-3 mb-6">
                 <div className="flex justify-between text-slate-600 dark:text-slate-400 py-1">
                   <span>Subtotal</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">${getTotalPrice().toFixed(2)}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">₹{getTotalPrice().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-slate-600 dark:text-slate-400 py-1">
                   <span>Shipping</span>
@@ -348,8 +347,7 @@ const CheckoutPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-slate-700">
                   <span className="text-lg font-bold text-slate-900 dark:text-white">Total</span>
-                  <span className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
-                    ${getTotalPrice().toFixed(2)}
+                    ₹{getTotalPrice().toFixed(2)}
                   </span>
                 </div>
               </div>
