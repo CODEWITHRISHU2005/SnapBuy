@@ -4,7 +4,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
@@ -18,12 +18,12 @@ import java.util.Map;
 public class ChatService {
 
     private final ResourceLoader resourceLoader;
-    private final PgVectorStore vectorStore;
+    private final VectorStore vectorStore;
     private final ChatClient chatClient;
 
     public ChatService(ChatClient.Builder chatClientBuilder,
                        ResourceLoader resourceLoader,
-                       PgVectorStore vectorStore) {
+                       VectorStore vectorStore) {
         this.resourceLoader = resourceLoader;
         this.vectorStore = vectorStore;
         this.chatClient = chatClientBuilder.build();

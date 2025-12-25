@@ -5,6 +5,7 @@ import type { Product } from '../types';
 import { Search, ShoppingCart, ArrowRight, Sparkles, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import ChatBot from '../components/ChatBot';
 
 const HomePage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -480,6 +481,7 @@ const HomePage: React.FC = () => {
           </div>
         )}
       </div>
+      <ChatBot />
     </div>
   );
 };
