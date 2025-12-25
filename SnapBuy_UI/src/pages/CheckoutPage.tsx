@@ -330,6 +330,7 @@ const CheckoutPage: React.FC = () => {
                       <p className="text-sm font-medium text-slate-900 dark:text-white line-clamp-2">{item.product.name}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Qty: {item.quantity}</p>
                     </div>
+                  <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
                       ₹{(item.product.price * item.quantity).toFixed(2)}
                     </div>
                   </div>
@@ -347,6 +348,7 @@ const CheckoutPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center pt-3 border-t border-slate-200 dark:border-slate-700">
                   <span className="text-lg font-bold text-slate-900 dark:text-white">Total</span>
+                  <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
                     ₹{getTotalPrice().toFixed(2)}
                   </span>
                 </div>

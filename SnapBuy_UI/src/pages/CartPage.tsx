@@ -158,6 +158,7 @@ const CartPage: React.FC = () => {
                 </div>
                 <div className="border-t-2 border-slate-200 dark:border-slate-700 pt-4 mt-4 flex justify-between items-center">
                   <span className="text-lg font-bold text-slate-900 dark:text-white">Total</span>
+                  <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
                     ₹{getTotalPrice().toFixed(2)}
                   </span>
                 </div>
