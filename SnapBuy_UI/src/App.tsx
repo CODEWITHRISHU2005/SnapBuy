@@ -12,6 +12,7 @@ import OrdersPage from './pages/OrdersPage';
 import OAuth2Callback from './pages/OAuth2Callback';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import ChatBot from './components/ChatBot';
 
 function App() {
   return (
@@ -33,8 +34,10 @@ function App() {
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Routes>
-              </div>
+                </div>
+              <ChatBot />
             </div>
+
           </Router>
         </CartProvider>
       </AuthProvider>
