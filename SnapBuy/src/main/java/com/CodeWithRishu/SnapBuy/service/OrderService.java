@@ -15,6 +15,7 @@ import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -28,6 +29,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -43,24 +45,8 @@ public class OrderService {
     @Transactional
     @CacheEvict(value = "allOrders", allEntries = true)
     public OrderResponse placeOrder(OrderRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new SecurityException("Authentication required to place an order.");
-        }
-
-        String userEmail = null;
-        Object principal = authentication.getPrincipal();
-
-        if (principal instanceof OAuth2User oAuth2User) {
-            userEmail = oAuth2User.getAttribute("email");
-        } else if (principal instanceof UserDetails userDetails) {
-            userEmail = userDetails.getUsername();
-        } else {
-            userEmail = authentication.getName();
-        }
-
-        User user = userRepository.findByEmail(userEmail)
+        User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found in database: "));
 
         Order order = new Order();
@@ -73,47 +59,46 @@ public class OrderService {
         order.setOrderDate(LocalDate.now());
         order.setUser(user);
 
-//            String filter = String.format("productId == %s", String.valueOf(product.getId()));
-//            vectorStore.delete(filter);
-//
-//            String updatedContent = String.format("""
-//
-//                            Product Name: %s
-//                            Description: %s
-//                            Brand: %s
-//                            Category: %s
-//                            Price: %.2f
-//                            Release Date: %s
-//                            Available: %s
-//                            Stock: %s
-//                            """,
-//                    product.getName(),
-//                    product.getDescription(),
-//                    product.getBrand(),
-//                    product.getCategory(),
-//                    product.getPrice(),
-//                    product.getReleaseDate(),
-//                    product.isProductAvailable(),
-//                    product.getStockQuantity()
-//            );
-//
-//            Document UpdatedDoc = new Document(
-//                    UUID.randomUUID().toString(),
-//                    updatedContent,
-//                    Map.of("productId", String.valueOf(product.getId()))
-//            );
-//
-//            vectorStore.add(List.of(UpdatedDoc));
+        final Long productId = request.items().getFirst().productId();
+        Product product = productRepository.findById(productId).orElseThrow();
+
+        String filter = String.format("productId == %s", String.valueOf(product.getId()));
+        vectorStore.delete(filter);
+
+        String updatedContent = String.format("""
+                        
+                        Product Name: %s
+                        Description: %s
+                        Brand: %s
+                        Category: %s
+                        Price: %.2f
+                        Release Date: %s
+                        Available: %s
+                        Stock: %s
+                        """,
+                product.getName(),
+                product.getDescription(),
+                product.getBrand(),
+                product.getCategory(),
+                product.getPrice(),
+                product.getReleaseDate(),
+                product.isProductAvailable(),
+                product.getStockQuantity()
+        );
+
+        Document updatedDoc = new Document(
+                UUID.randomUUID().toString(),
+                updatedContent,
+                Map.of("productId", String.valueOf(product.getId()))
+        );
+
+        vectorStore.add(List.of(updatedDoc));
 
         List<OrderItem> orderItems = new ArrayList<>();
         for (OrderItemRequest itemReq : request.items()) {
 
-            Product product = productRepository.findById(itemReq.productId())
-                    .orElseThrow(() -> new RuntimeException("Product not found: " + itemReq.productId()));
-
-            if (product.getStockQuantity() < itemReq.quantity()) {
+            if (product.getStockQuantity() < itemReq.quantity())
                 throw new RuntimeException("Insufficient stock for product: " + product.getName());
-            }
 
             product.setStockQuantity(product.getStockQuantity() - itemReq.quantity());
 
@@ -131,28 +116,28 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-//        StringBuilder content = new StringBuilder();
-//        content.append("Order Summary: \n");
-//        content.append("Order  ID: ").append(savedOrder.getOrderId()).append("\n");
-//        content.append("Customer: ").append(savedOrder.getCustomerName()).append("\n");
-//        content.append("Email: ").append(savedOrder.getEmail()).append("\n");
-//        content.append("Date: ").append(savedOrder.getOrderDate()).append("\n");
-//        content.append("Status: ").append(savedOrder.getStatus()).append("\n");
-//        content.append("Products: \n");
-//
-//        for (OrderItem orderItem : savedOrder.getOrderItems()) {
-//            content.append("- ").append(orderItem.getProduct().getName())
-//                    .append(" x ").append(orderItem.getQuantity())
-//                    .append(" = ").append(orderItem.getTotalPrice()).append("\n");
-//        }
-//
-//        Document document = new Document(
-//                UUID.randomUUID().toString(),
-//                content.toString(),
-//                Map.of("orderId", savedOrder.getOrderId())
-//        );
-//
-//        vectorStore.add(List.of(document));
+        StringBuilder content = new StringBuilder();
+        content.append("Order Summary: \n");
+        content.append("Order  ID: ").append(savedOrder.getOrderId()).append("\n");
+        content.append("Customer: ").append(savedOrder.getCustomerName()).append("\n");
+        content.append("Email: ").append(savedOrder.getEmail()).append("\n");
+        content.append("Date: ").append(savedOrder.getOrderDate()).append("\n");
+        content.append("Status: ").append(savedOrder.getStatus()).append("\n");
+        content.append("Products: \n");
+
+        for (OrderItem orderItem : savedOrder.getOrderItems()) {
+            content.append("- ").append(orderItem.getProduct().getName())
+                    .append(" x ").append(orderItem.getQuantity())
+                    .append(" = ").append(orderItem.getTotalPrice()).append("\n");
+        }
+
+        Document document = new Document(
+                UUID.randomUUID().toString(),
+                content.toString(),
+                Map.of("orderId", savedOrder.getOrderId())
+        );
+
+        vectorStore.add(List.of(document));
 
         List<OrderItemResponse> itemResponses = savedOrder.getOrderItems().stream()
                 .map(item -> new OrderItemResponse(
@@ -181,8 +166,6 @@ public class OrderService {
         List<OrderResponse> orderResponses = new ArrayList<>();
 
         for (Order order : orders) {
-
-
             List<OrderItemResponse> itemResponses = new ArrayList<>();
 
             for (OrderItem item : order.getOrderItems()) {

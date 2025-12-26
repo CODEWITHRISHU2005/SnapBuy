@@ -17,8 +17,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.function.Function;
+import java.util.stream.IntStream;
 
 @Service
 @Slf4j
@@ -47,147 +50,101 @@ public class OtpService {
     public OtpResponse sendOtp(OtpRequest otpRequest) {
         log.info("Sending OTP to phone: {}", maskPhone(otpRequest.phone()));
 
-        try {
-            String otp = generateOtp();
+        return Optional.of(normalizePhone(otpRequest.phone()))
+                .map(phone -> {
+                    cleanupExpiredOtps();
+                    String otp = generateOtp();
+                    Instant expiresAt = Instant.now().plusMillis(otpExpiration);
 
-            Instant expiresAt = Instant.now().plusMillis(otpExpiration);
+                    otpRepository.save(OtpVerification.builder()
+                            .phone(phone)
+                            .otp(otp)
+                            .verified(false)
+                            .expiresAt(expiresAt)
+                            .build());
 
-            String phoneNumber = otpRequest.phone();
-
-            if (!phoneNumber.startsWith("+91"))
-                phoneNumber = "+91" + phoneNumber;
-
-            cleanupExpiredOtps();
-
-            OtpVerification verification = OtpVerification.builder()
-                    .phone(phoneNumber)
-                    .otp(otp)
-                    .verified(false)
-                    .expiresAt(expiresAt)
-                    .build();
-
-            otpRepository.save(verification);
-
-            boolean smsSent = sendSms(phoneNumber, otp);
-
-            if (smsSent) {
-                log.info("OTP sent successfully to {}", maskPhone(phoneNumber));
-                return new OtpResponse(true, "OTP sent successfully to your phone number", expiresAt);
-            } else {
-                log.error("Failed to send OTP via SMS");
-                return new OtpResponse(false, "Failed to send OTP. Please try again.", null);
-            }
-
-        } catch (Exception e) {
-            log.error("Error sending OTP", e);
-            return new OtpResponse(false, "Error sending OTP: " + e.getMessage(), null);
-        }
+                    return sendSms(phone, otp)
+                            ? new OtpResponse(true, "OTP sent successfully", expiresAt)
+                            : new OtpResponse(false, "Failed to send OTP", null);
+                })
+                .orElseGet(() -> new OtpResponse(false, "Error processing request", null));
     }
 
     @Transactional
     public OtpResponse verifyOtp(OtpRequest otpVerifyRequest) {
-        String phoneNumber = otpVerifyRequest.phone();
+        String phone = normalizePhone(otpVerifyRequest.phone());
+        log.info("Verifying OTP for phone: {}", maskPhone(phone));
 
-        if (!phoneNumber.startsWith("+91")) phoneNumber = "+91" + phoneNumber;
+        User user = userRepository.findByEmail(otpVerifyRequest.email())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + otpVerifyRequest.email()));
 
-        log.info("Verifying OTP for phone: {}", maskPhone(phoneNumber));
+        return otpRepository.findTopByPhoneAndVerifiedFalseOrderByCreatedAtDesc(phone)
+                .map(verification -> {
+                    if (verification.getExpiresAt().isBefore(Instant.now())) {
+                        return new OtpResponse(false, "OTP has expired", null);
+                    }
+                    if (!verification.getOtp().equals(otpVerifyRequest.otp())) {
+                        return new OtpResponse(false, "Invalid OTP", null);
+                    }
 
-        try {
-            Optional<OtpVerification> verificationOpt = otpRepository
-                    .findTopByPhoneAndVerifiedFalseOrderByCreatedAtDesc(phoneNumber);
-
-            User user = userRepository.findByEmail(otpVerifyRequest.email())
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + otpVerifyRequest.email()));
-
-            if (verificationOpt.isEmpty())
-                return new OtpResponse(false, "No OTP found for this phone number. Please otpRequest a new OTP.", null);
-
-            OtpVerification verification = verificationOpt.get();
-
-            if (verification.getExpiresAt().isBefore(Instant.now()))
-                return new OtpResponse(false, "OTP has expired. Please otpRequest a new OTP.", null);
-
-            if (verification.getOtp().equals(otpVerifyRequest.otp())) {
-                verification.setVerified(true);
-                verification.setUser(user);
-                otpRepository.save(verification);
-
-                log.info("OTP verified successfully for {}", maskPhone(phoneNumber));
-                return new OtpResponse(true, "Phone number verified successfully!", verification.getExpiresAt());
-            } else {
-                log.warn("Invalid OTP provided for {}", maskPhone(phoneNumber));
-                return new OtpResponse(false, "Invalid OTP. Please try again.", null);
-            }
-
-        } catch (Exception e) {
-            log.error("Error verifying OTP", e);
-            return new OtpResponse(false, "Error verifying OTP: " + e.getMessage(), null);
-        }
+                    verification.setVerified(true);
+                    verification.setUser(user);
+                    otpRepository.save(verification);
+                    return new OtpResponse(true, "Verified successfully!", verification.getExpiresAt());
+                })
+                .orElse(new OtpResponse(false, "No OTP found", null));
     }
 
     public boolean isPhoneVerified(String phone) {
-        Optional<OtpVerification> verification = otpRepository
-                .findTopByPhoneAndVerifiedTrueOrderByCreatedAtDesc(phone);
-        return verification.isPresent();
+        return otpRepository.findTopByPhoneAndVerifiedTrueOrderByCreatedAtDesc(normalizePhone(phone))
+                .isPresent();
     }
 
     public OtpResponse resendOtp(OtpRequest otpRequest) {
-        log.info("Resending OTP to phone: {}", maskPhone(otpRequest.phone()));
-
-        otpRepository.deleteByPhoneAndVerifiedFalse(otpRequest.phone());
-
+        otpRepository.deleteByPhoneAndVerifiedFalse(normalizePhone(otpRequest.phone()));
         return sendOtp(otpRequest);
     }
 
     private String generateOtp() {
-        Random random = new Random();
-        StringBuilder otp = new StringBuilder();
-
-        for (int i = 0; i < otpLength; i++)
-            otp.append(random.nextInt(10));
-
-        return otp.toString();
+        return IntStream.range(0, otpLength)
+                .mapToObj(i -> String.valueOf(new Random().nextInt(10)))
+                .reduce("", String::concat);
     }
 
     private boolean sendSms(String toPhone, String otp) {
         try {
             initTwilio();
-
-            String messageBody = String.format(
-                    "Your verification code is: %s%n%nThis code will expire in %d minutes.%n%nIf you didn't otpRequest this, please ignore this message.",
-                    otp,
-                    (otpExpiration / 1000) / 60
-            );
-
-            Message message = Message.creator(
+            Message.creator(
                     new PhoneNumber(toPhone),
                     new PhoneNumber(fromPhoneNumber),
-                    messageBody
+                    String.format("Your code: %s. Expires in %d min.", otp, (otpExpiration / 60000))
             ).create();
-
-            log.info("SMS sent successfully. SID: {}", message.getSid());
             return true;
-
         } catch (Exception e) {
-            log.error("Error sending SMS via Twilio", e);
+            log.error("Twilio error", e);
             return false;
         }
     }
 
+    private String normalizePhone(String phone) {
+        return Optional.ofNullable(phone)
+                .filter(p -> !p.startsWith("+91"))
+                .map(p -> "+91" + p)
+                .orElse(phone);
+    }
+
     private String maskPhone(String phone) {
-        if (phone == null || phone.length() < 4) {
-            return "****";
-        }
-        return "****" + phone.substring(phone.length() - 4);
+        return Optional.ofNullable(phone)
+                .filter(p -> p.length() >= 4)
+                .map(p -> "****" + p.substring(p.length() - 4))
+                .orElse("****");
     }
 
     @Transactional
     public void cleanupExpiredOtps() {
-        int deleted = otpRepository.deleteByExpiresAtBefore(Instant.now());
-
-        if (deleted > 0) {
-            log.info("Cleaned up {} expired OTPs", deleted);
-        }
+        Optional.of(otpRepository.deleteByExpiresAtBefore(Instant.now()))
+                .filter(count -> count > 0)
+                .ifPresent(count -> log.info("Cleaned up {} expired OTPs", count));
     }
 
 }

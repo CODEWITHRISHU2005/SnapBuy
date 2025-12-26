@@ -11,8 +11,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
@@ -58,19 +58,16 @@ public class ChatService {
     }
 
     private String fetchSemanticContext(String userQuery) {
-
-        List<Document> documents = vectorStore.similaritySearch(
-                SearchRequest.builder()
-                        .query(userQuery)
-                        .topK(5)
-                        .similarityThreshold(0.7f)
-                        .build()
-        );
-        StringBuilder context = new StringBuilder();
-        for (Document document : documents) {
-            context.append(document.getFormattedContent()).append("\n");
-        }
-        return context.toString();
+        return vectorStore.similaritySearch(
+                        SearchRequest.builder()
+                                .query(userQuery)
+                                .topK(5)
+                                .similarityThreshold(0.7f)
+                                .build()
+                )
+                .stream()
+                .map(Document::getFormattedContent)
+                .collect(Collectors.joining("\n"));
     }
 
 }

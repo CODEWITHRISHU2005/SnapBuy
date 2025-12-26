@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -20,37 +21,30 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public void register(User userInfo) {
-        log.info("Adding new user: {}", userInfo.getEmail());
-        if (repository.findByEmail(userInfo.getEmail()).isPresent()) {
-            throw new UserAlreadyExists("User already exists with email: " + userInfo.getEmail());
-        }
+        log.info("Attempting to register user: {}", userInfo.getEmail());
 
-        userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));
+        repository.findByEmail(userInfo.getEmail())
+                .ifPresent(u -> {
+                    throw new UserAlreadyExists("User already exists with email: " + userInfo.getEmail());
+                });
 
-        if (userInfo.getAdminKey() != null &&
-                userInfo.getAdminKey().equals("Rishabh@2005")) {
-            userInfo.setRoles(Set.of(Role.ADMIN));
-            log.info("User '{}' registered as ADMIN", userInfo.getEmail());
-        } else {
-            userInfo.setRoles(Set.of(Role.USER));
-            log.info("User '{}' registered as USER", userInfo.getEmail());
-        }
+        repository.save(prepareUser(userInfo));
 
-        userInfo.setAdminKey(null);
-
-        repository.save(userInfo);
         log.info("User '{}' added successfully", userInfo.getEmail());
     }
 
-    public void registerForGoogle(User user) {
-        log.info("Adding new Google user: {}", user.getEmail());
-        if (repository.findByEmail(user.getEmail()).isPresent()) {
-            log.info("User already exists with email: {}", user.getEmail());
-            return;
-        }
+    private User prepareUser(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        repository.save(user);
-        log.info("Google user '{}' added successfully", user.getEmail());
+        Role assignedRole = Optional.ofNullable(user.getAdminKey())
+                .filter(key -> key.equals("Rishabh@2005"))
+                .map(key -> Role.ADMIN)
+                .orElse(Role.USER);
+
+        user.setRoles(Set.of(assignedRole));
+        user.setAdminKey(null);
+
+        log.info("User '{}' assigned role: {}", user.getEmail(), assignedRole);
+        return user;
     }
-
 }
