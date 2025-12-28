@@ -2,13 +2,13 @@ services:
   - type: web
     name: snapbuy-app
     plan: free
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./SnapBuyDockerfile
     runtime: docker
 
   - type: pserv
     name: snapbuy-mysql
     plan: free
-    dockerfilePath: ./mysql/Dockerfile
+    dockerfilePath: ./SnapBuy/mysql/Dockerfile
     runtime: docker
     disk:
       name: mysql-data
@@ -27,5 +27,5 @@ services:
   - type: pserv
     name: snapbuy-redis
     plan: free
-    dockerfilePath: ./redis/Dockerfile
+    dockerfilePath: ./SnapBuy/redis/Dockerfile
     runtime: docker
