@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: snapbuy-app
+    plan: free
+    dockerfilePath: ./Dockerfile
+    runtime: docker
+
+  - type: pserv
+    name: snapbuy-mysql
+    plan: free
+    dockerfilePath: ./mysql/Dockerfile
+    runtime: docker
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 1
+    envVars:
+      - key: MYSQL_ROOT_PASSWORD
+        value: ${DB_PASSWORD}
+      - key: MYSQL_DATABASE
+        value: SnapBuy
+      - key: MYSQL_USER
+        value: SnapBuy-MySQL
+      - key: MYSQL_PASSWORD
+        value: ${DB_PASSWORD}
+
+  - type: pserv
+    name: snapbuy-redis
+    plan: free
+    dockerfilePath: ./redis/Dockerfile
+    runtime: docker
