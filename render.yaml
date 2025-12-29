@@ -4,9 +4,3 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile
     runtime: docker
-
-  - type: pserv
-    name: snapbuy-redis
-    plan: free
-    dockerfilePath: ./redis/Dockerfile
-    runtime: docker
