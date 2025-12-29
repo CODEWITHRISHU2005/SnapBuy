@@ -2,11 +2,11 @@ services:
   - type: web
     name: snapbuy-app
     plan: free
-    dockerfilePath: ./SnapBuy/Dockerfile
+    dockerfilePath: ./Dockerfile
     runtime: docker
 
   - type: pserv
     name: snapbuy-redis
     plan: free
-    dockerfilePath: ./SnapBuy/redis/Dockerfile
+    dockerfilePath: ./redis/Dockerfile
     runtime: docker
