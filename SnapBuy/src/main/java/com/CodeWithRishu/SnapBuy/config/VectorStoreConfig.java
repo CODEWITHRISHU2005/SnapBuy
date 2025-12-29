@@ -61,5 +61,5 @@ public class VectorStoreConfig {
                 .initializeSchema(true)
                 .build();
     }
-    
+
 }

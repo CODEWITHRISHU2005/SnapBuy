@@ -340,7 +340,7 @@ const LoginPage: React.FC = () => {
 
   const handleGoogleLogin = () => {
     // Correct OAuth2 authorization endpoint for Spring Security
-    window.location.href = `https://snapbuy-production.up.railway.app/oauth2/authorization/google`;
+    window.location.href = `https://snapbuy-app.onrender.com/oauth2/authorization/google`;
   };
 
   const isLoginOtpSending = loginOtpStatus === 'sending';

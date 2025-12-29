@@ -10,7 +10,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'https://snapbuy-production.up.railway.app',
+        target: 'https://snapbuy-app.onrender.com',
         changeOrigin: true,
         secure: false,
       }
