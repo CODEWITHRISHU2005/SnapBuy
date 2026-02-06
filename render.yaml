@@ -2,5 +2,5 @@ services:
   - type: web
     name: snapbuy-app
     plan: free
-    dockerfilePath: dockerfilePath: ./SnapBuy/Dockerfile
+    dockerfilePath: ./SnapBuy/Dockerfile
     runtime: docker
