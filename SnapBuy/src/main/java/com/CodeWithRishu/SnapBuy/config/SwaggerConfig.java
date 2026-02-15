@@ -15,13 +15,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
-/**
- * Swagger/OpenAPI Configuration for SnapBuy E-Commerce Application
- * Provides comprehensive API documentation with security schemes and server configurations
- *
- * @author Rishabh Gupta
- * @version 2.0.0
- */
 @Configuration
 public class SwaggerConfig {
 
@@ -31,12 +24,6 @@ public class SwaggerConfig {
     @Value("${app.api.base-url}")
     private String baseUrl;
 
-    /**
-     * Configures OpenAPI 3.0 specification for SnapBuy API
-     * Includes API information, servers, security schemes, and external documentation
-     *
-     * @return configured OpenAPI instance
-     */
     @Bean
     public OpenAPI snapBuyOpenAPI() {
         return new OpenAPI()
@@ -47,24 +34,18 @@ public class SwaggerConfig {
                 .externalDocs(buildExternalDocumentation());
     }
 
-    /**
-     * Builds comprehensive API information metadata
-     */
     private Info buildApiInfo() {
         return new Info()
                 .title("SnapBuy E-Commerce API")
-                .description(buildDescription())
+                .description(buildDescription)
                 .version("v2.0.0")
                 .contact(buildContact())
                 .license(buildLicense())
                 .termsOfService("https://rishabhportfolio-phi.vercel.app/terms");
     }
 
-    /**
-     * Builds detailed API description with features and capabilities
-     */
-    private String buildDescription() {
-        return """
+    private static final String buildDescription =
+            """
                 ## SnapBuy E-Commerce REST API
                 
                 A comprehensive backend API for a modern e-commerce platform with full-featured shopping capabilities.
@@ -88,11 +69,7 @@ public class SwaggerConfig {
                 ### Authentication:
                 Most endpoints require JWT authentication. Use the `/auth/login` endpoint to obtain a token.
                 """;
-    }
 
-    /**
-     * Builds contact information for API maintainer
-     */
     private Contact buildContact() {
         return new Contact()
                 .name("Rishabh Gupta")
@@ -100,18 +77,12 @@ public class SwaggerConfig {
                 .url("https://rishabhportfolio-phi.vercel.app/");
     }
 
-    /**
-     * Builds license information
-     */
     private License buildLicense() {
         return new License()
                 .name("Apache License 2.0")
                 .url("https://www.apache.org/licenses/LICENSE-2.0");
     }
 
-    /**
-     * Configures API servers for different environments
-     */
     private List<Server> buildServers() {
         Server localServer = new Server()
                 .url(baseUrl + ":" + serverPort)
@@ -128,9 +99,6 @@ public class SwaggerConfig {
         return List.of(localServer, productionServer, stagingServer);
     }
 
-    /**
-     * Configures security schemes for API authentication
-     */
     private Components buildComponents() {
         return new Components()
                 .addSecuritySchemes("Bearer Authentication",
@@ -149,18 +117,12 @@ public class SwaggerConfig {
                 );
     }
 
-    /**
-     * Defines security requirements for API endpoints
-     */
     private List<SecurityRequirement> buildSecurityRequirements() {
         return List.of(
                 new SecurityRequirement().addList("Bearer Authentication")
         );
     }
 
-    /**
-     * Provides links to external documentation
-     */
     private ExternalDocumentation buildExternalDocumentation() {
         return new ExternalDocumentation()
                 .description("SnapBuy Complete Documentation")
