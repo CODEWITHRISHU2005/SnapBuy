@@ -70,7 +70,7 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/ott/**",
                                 "/api/otp/**",
-                                "/error",
+                                "/actuator/health/**",
                                 "/favicon.ico",
                                 "/api/login/oauth2/code/google/**",
                                 "/swagger-ui/**",
