@@ -53,7 +53,7 @@ public class OttService {
                             .build());
 
                     return UriComponentsBuilder.fromHttpUrl(appBaseUrl)
-                            .path("/api/v1/ott/login")
+                            .path("/api/ott/login")
                             .queryParam("token", tokenValue)
                             .toUriString();
                 })
