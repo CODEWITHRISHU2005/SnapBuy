@@ -3,7 +3,6 @@ package com.CodeWithRishu.SnapBuy.handler;
 import com.CodeWithRishu.SnapBuy.dto.Provider;
 import com.CodeWithRishu.SnapBuy.entity.RefreshToken;
 import com.CodeWithRishu.SnapBuy.entity.User;
-import com.CodeWithRishu.SnapBuy.repository.RefreshTokenRepository;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import com.CodeWithRishu.SnapBuy.service.JwtService;
 import com.CodeWithRishu.SnapBuy.service.RefreshTokenService;
@@ -31,7 +30,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
     private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
 
     @Value("${app.auth.success-redirect}")
     private String frontendSuccessRedirectURL;
@@ -60,7 +58,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         String accessToken = jwtService.generateToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getEmail());
-        refreshTokenRepository.save(refreshToken);
 
         String redirectUrl = String.format("%s?accessToken=%s&refreshToken=%s",
                 frontendSuccessRedirectURL, accessToken, refreshToken.getToken());

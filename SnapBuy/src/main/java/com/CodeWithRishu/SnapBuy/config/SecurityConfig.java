@@ -36,18 +36,16 @@ import java.util.Map;
 public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
-    private final CustomUserDetailsService customUserDetailsService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final MailSender mailSender;
 
 
     public SecurityConfig(
-            UserDetailsService userDetailsService, CustomUserDetailsService customUserDetailsService,
+            UserDetailsService userDetailsService,
             MailSender mailSender,
             @Lazy OAuth2SuccessHandler oAuth2SuccessHandler
     ) {
         this.userDetailsService = userDetailsService;
-        this.customUserDetailsService = customUserDetailsService;
         this.mailSender = mailSender;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
     }
@@ -136,7 +134,7 @@ public class SecurityConfig {
 
     @Bean
     public MagicLinkOttGenerationSuccessHandler oneTimeTokenGenerationSuccessHandler() {
-        return new MagicLinkOttGenerationSuccessHandler(customUserDetailsService, mailSender);
+        return new MagicLinkOttGenerationSuccessHandler(mailSender);
     }
 
     @Bean

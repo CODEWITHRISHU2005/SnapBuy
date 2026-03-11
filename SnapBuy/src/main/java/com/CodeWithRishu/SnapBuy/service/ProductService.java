@@ -1,20 +1,20 @@
 package com.CodeWithRishu.SnapBuy.service;
 
-import com.CodeWithRishu.SnapBuy.dto.response.PageResponse;
 import com.CodeWithRishu.SnapBuy.entity.Product;
 import com.CodeWithRishu.SnapBuy.exception.ResourceNotFoundException;
 import com.CodeWithRishu.SnapBuy.repository.ProductRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,33 +22,16 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final AiImageGeneratorService aiImageGenService;
     private final ChatClient chatClient;
     private final VectorStore vectorStore;
 
-    @Lazy
-    @Autowired
-    private ProductService self;
-
-    public ProductService(
-            ProductRepository productRepository,
-            AiImageGeneratorService aiImageGenService,
-            ChatClient.Builder chatClientBuilder,
-            VectorStore vectorStore) {
-        this.productRepository = productRepository;
-        this.aiImageGenService = aiImageGenService;
-        this.chatClient = chatClientBuilder.build();
-        this.vectorStore = vectorStore;
-    }
-
-    @Cacheable("allProducts")
     public List<Product> getAllProduct() {
         log.info("Fetching all products");
         List<Product> products = productRepository.findAll();
@@ -65,15 +48,23 @@ public class ProductService {
                 });
     }
 
-    @Caching(
-            put = {
-                    @CachePut(value = "product", key = "#result.id")
-            },
-            evict = {
-                    @CacheEvict(value = "allProducts", allEntries = true),
-                    @CacheEvict(value = "productsPage", allEntries = true)
-            }
-    )
+    @Cacheable(value = "productsPage", key = "#page + '-' + #size + '-' + #sortBy + '-' + #sortDirection")
+    public Page<Product> getProductsByPaginationAndSorting(int page, int size, String sortBy, String sortDirection) {
+        log.info("Fetching products with pagination: page={}, size={}, sortBy={}, sortDirection={}", page, size, sortBy, sortDirection);
+
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Product> productPage = productRepository.findAll(pageable);
+        log.debug("Total products fetched: {}, Total pages: {}", productPage.getTotalElements(), productPage.getTotalPages());
+
+        return productPage;
+    }
+
+    @Caching(evict = {
+            @CacheEvict(value = "product", key = "#product.id"),
+            @CacheEvict(value = "productsPage", allEntries = true) // Clear pages because sorting/content changed
+    })
     public Product addOrUpdateProduct(Product product, MultipartFile image) throws IOException {
 
         Product.ProductBuilder builder = Product.builder()
@@ -119,52 +110,28 @@ public class ProductService {
                 savedProduct.getStockQuantity()
         );
 
+        String documentId = String.valueOf(savedProduct.getId());
+
         Document document = new Document(
-                UUID.randomUUID().toString(),
+                documentId,
                 content,
                 Map.of("productId", String.valueOf(savedProduct.getId()))
         );
 
         vectorStore.add(List.of(document));
+        log.info("Product saved and added to Vector Store: {}", savedProduct.getId());
 
         return savedProduct;
     }
 
-    @Caching(
-            evict = {
-                    @CacheEvict(value = "product", key = "#id"),
-                    @CacheEvict(value = "allProducts", allEntries = true),
-                    @CacheEvict(value = "productsPage", allEntries = true)
-            }
-    )
+    @Caching(evict = {
+            @CacheEvict(value = "product", key = "#id"),
+            @CacheEvict(value = "productsPage", allEntries = true)
+    })
+
     public void deleteProduct(long id) {
         productRepository.deleteById(id);
         log.info("Product with id {} deleted successfully", id);
-    }
-
-    @Cacheable(
-            value = "productsPage",
-            key = "#page + '_' + #size + '_' + #sortBy + '_' + #sortDirection"
-    )
-    public PageResponse<Product> getProductsByPaginationAndSortingCached(int page, int size, String sortBy, String sortDirection) {
-        log.info("Fetching products with pagination: page={}, size={}, sortBy={}, sortDirection={}", page, size, sortBy, sortDirection);
-
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<Product> productPage = productRepository.findAll(pageable);
-        log.debug("Total products fetched: {}, Total pages: {}", productPage.getTotalElements(), productPage.getTotalPages());
-
-        return PageResponse.of(productPage);
-    }
-
-    public Page<Product> getProductsByPaginationAndSorting(int page, int size, String sortBy, String sortDirection) {
-        PageResponse<Product> response = self.getProductsByPaginationAndSortingCached(page, size, sortBy, sortDirection);
-
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        return new PageImpl<>(response.getContent(), pageable, response.getTotalElements());
     }
 
     public List<Product> searchProducts(String keyword) {

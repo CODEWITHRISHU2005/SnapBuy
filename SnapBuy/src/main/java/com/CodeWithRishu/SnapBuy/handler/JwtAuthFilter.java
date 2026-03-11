@@ -112,12 +112,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private boolean shouldSkipFilter(String path) {
-        for (String exact : EXCLUDED_EXACT)
-            if (path.equals(exact)) return true;
-
-        for (String prefix : EXCLUDED_PREFIXES)
-            if (path.startsWith(prefix)) return true;
-        return false;
+        return EXCLUDED_EXACT.contains(path) ||
+                EXCLUDED_PREFIXES.stream().anyMatch(path::startsWith);
     }
 
 }
