@@ -3,7 +3,6 @@ package com.CodeWithRishu.SnapBuy.service;
 import com.CodeWithRishu.SnapBuy.entity.Product;
 import com.CodeWithRishu.SnapBuy.exception.ResourceNotFoundException;
 import com.CodeWithRishu.SnapBuy.repository.ProductRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
@@ -25,12 +24,17 @@ import java.util.Objects;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class ProductService {
 
     private final ProductRepository productRepository;
     private final ChatClient chatClient;
     private final VectorStore vectorStore;
+
+    public ProductService(ProductRepository productRepository, ChatClient.Builder chatClientBuilder, VectorStore vectorStore) {
+        this.productRepository = productRepository;
+        this.chatClient = chatClientBuilder.build();
+        this.vectorStore = vectorStore;
+    }
 
     public List<Product> getAllProduct() {
         log.info("Fetching all products");
