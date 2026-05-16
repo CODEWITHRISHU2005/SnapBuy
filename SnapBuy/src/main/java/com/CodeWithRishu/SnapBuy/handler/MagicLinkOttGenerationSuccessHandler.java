@@ -49,7 +49,7 @@ public class MagicLinkOttGenerationSuccessHandler implements OneTimeTokenGenerat
 
     private String buildMagicLink(HttpServletRequest request, OneTimeToken oneTimeToken) {
         return UriComponentsBuilder
-                .fromHttpUrl(UrlUtils.buildFullRequestUrl(request))
+                .fromUriString(UrlUtils.buildFullRequestUrl(request))
                 .replacePath(request.getContextPath())
                 .replaceQuery(null)
                 .fragment(null)
