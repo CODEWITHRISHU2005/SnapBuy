@@ -1,4 +1,6 @@
-FROM eclipse-temurin:21-jdk-jammy as deps
+# syntax=docker/dockerfile:1
+
+FROM eclipse-temurin:21-jdk-jammy AS deps
 
 WORKDIR /build
 
@@ -8,8 +10,9 @@ COPY .mvn/ .mvn/
 RUN --mount=type=bind,source=pom.xml,target=pom.xml \
     ./mvnw dependency:go-offline -DskipTests
 
+################################################################################
 
-FROM deps as package
+FROM deps AS package
 
 WORKDIR /build
 
@@ -19,11 +22,19 @@ RUN --mount=type=bind,source=pom.xml,target=pom.xml \
     ./mvnw package -DskipTests && \
     mv target/$(./mvnw help:evaluate -Dexpression=project.artifactId -q -DforceStdout)-$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout).jar target/app.jar
 
-# DEBUG: Show exactly what Spring Boot version is in the JAR
-RUN unzip -p target/app.jar BOOT-INF/lib/spring-boot-*.jar 2>/dev/null | strings | grep "Spring Boot" | head -5 || true
+# DEBUG
 RUN unzip -l target/app.jar | grep "spring-boot-[0-9]" | head -10 || true
 RUN unzip -l target/app.jar | grep "spring-ai" | head -10 || true
 
+################################################################################
+
+FROM package AS extracted
+
+WORKDIR /build
+
+RUN java -Djarmode=tools -jar target/app.jar extract --layers --launcher --destination target/extracted
+
+################################################################################
 
 FROM eclipse-temurin:21-jre-jammy AS final
 
@@ -38,10 +49,10 @@ RUN adduser \
     appuser
 USER appuser
 
-COPY --from=extract build/target/extracted/dependencies/ ./
-COPY --from=extract build/target/extracted/spring-boot-loader/ ./
-COPY --from=extract build/target/extracted/snapshot-dependencies/ ./
-COPY --from=extract build/target/extracted/application/ ./
+COPY --from=extracted build/target/extracted/dependencies/ ./
+COPY --from=extracted build/target/extracted/spring-boot-loader/ ./
+COPY --from=extracted build/target/extracted/snapshot-dependencies/ ./
+COPY --from=extracted build/target/extracted/application/ ./
 
 EXPOSE 8080
 
