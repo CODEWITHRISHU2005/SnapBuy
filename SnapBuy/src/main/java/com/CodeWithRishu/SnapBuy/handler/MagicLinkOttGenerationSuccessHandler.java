@@ -173,7 +173,7 @@ public class MagicLinkOttGenerationSuccessHandler implements OneTimeTokenGenerat
                                 <tr>
                                     <td style="background-color: #f9fafb; border-top: 1px solid #e5e7eb; padding: 20px 30px; text-align: center;">
                                         <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-                                            &copy; 2024 SnapBuy. All rights reserved.<br>
+                                            &copy; 2026 SnapBuy. All rights reserved.<br>
                                             This is an automated message. Please do not reply.
                                         </p>
                                     </td>

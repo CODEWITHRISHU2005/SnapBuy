@@ -121,11 +121,13 @@ public class OtpService {
         try {
             long minutes = otpExpiration / 60000;
             String messageContent = buildHtmlOtpEmail(toPhone, otp, minutes);
-
-            String jsonRequestBody = String.format(
-                    "{\"type\":\"transactional\",\"sender\":\"%s\",\"recipient\":\"%s\",\"content\":\"%s\"}",
-                    senderName, toPhone, messageContent
-            );
+            String requestBody = String.format("""
+                    {
+                      "sender": "%s",
+                      "recipient": "%s",
+                      "content": "%s"
+                    }
+                    """, senderName, toPhone, messageContent);
 
             HttpRequest httpRequest = HttpRequest.newBuilder()
                     .uri(URI.create(BREVO_SMS_URL))
@@ -133,7 +135,7 @@ public class OtpService {
                     .header("Content-Type", "application/json")
                     .header("Accept", "application/json")
                     .timeout(Duration.ofSeconds(10))
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonRequestBody))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
 
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -221,7 +223,7 @@ public class OtpService {
                             <tr>
                                 <td style="background-color: #f9fafb; border-top: 1px solid #e5e7eb; padding: 20px 30px; text-align: center;">
                                     <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-                                        &copy; 2024 SnapBuy. All rights reserved.<br>
+                                        &copy; 2026 SnapBuy. All rights reserved.<br>
                                         This is an automated message. Please do not reply.
                                     </p>
                                 </td>
