@@ -6,6 +6,7 @@ import com.CodeWithRishu.SnapBuy.entity.OtpVerification;
 import com.CodeWithRishu.SnapBuy.entity.User;
 import com.CodeWithRishu.SnapBuy.repository.OtpVerificationRepository;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +22,8 @@ import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -29,19 +32,23 @@ public class OtpService {
 
     private final OtpVerificationRepository otpRepository;
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final String BREVO_SMS_URL = "https://api.brevo.com/v3/transactionalSMS/sms";
+    private static final String BREVO_EMAIL_URL = "https://api.brevo.com/v3/smtp/email";
 
     @Value("${brevo.api.key}")
     private String brevoApiKey;
 
     @Value("${brevo.sender-name:SnapBuy}")
     private String senderName;
+
+    @Value("${spring.mail.from:noreply@snapbuy.com}")
+    private String mailFrom;
 
     @Value("${otp.expiration-ms}")
     private long otpExpiration;
@@ -52,7 +59,8 @@ public class OtpService {
     @Transactional
     public OtpResponse sendOtp(OtpRequest otpRequest) {
         String phone = normalizePhone(otpRequest.phone());
-        log.info("Sending OTP to phone: {}", maskPhone(phone));
+        String email = otpRequest.email();
+        log.info("Sending OTP to email: {}", email);
 
         String otp = generateOtp();
         Instant expiresAt = Instant.now().plusMillis(otpExpiration);
@@ -64,7 +72,8 @@ public class OtpService {
                 .expiresAt(expiresAt)
                 .build());
 
-        boolean isSent = sendSms(phone, otp);
+        String username = email != null && email.contains("@") ? email.split("@")[0] : "User";
+        boolean isSent = sendOtpEmail(email, username, otp);
 
         if (isSent) {
             return new OtpResponse(true, "OTP sent successfully", expiresAt);
@@ -117,25 +126,27 @@ public class OtpService {
         return otp.toString();
     }
 
-    private boolean sendSms(String toPhone, String otp) {
+    private boolean sendOtpEmail(String toEmail, String username, String otp) {
         try {
             long minutes = otpExpiration / 60000;
-            String messageContent = buildHtmlOtpEmail(toPhone, otp, minutes);
-            String requestBody = String.format("""
-                    {
-                      "sender": "%s",
-                      "recipient": "%s",
-                      "content": "%s"
-                    }
-                    """, senderName, toPhone, messageContent);
+            String htmlContent = buildHtmlOtpEmail(username, otp, minutes);
+
+            Map<String, Object> payload = Map.of(
+                    "sender", Map.of("name", senderName, "email", mailFrom),
+                    "to", List.of(Map.of("email", toEmail, "name", username)),
+                    "subject", "Your SnapBuy Verification Code",
+                    "htmlContent", htmlContent
+            );
+
+            String jsonPayload = objectMapper.writeValueAsString(payload);
 
             HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(BREVO_SMS_URL))
+                    .uri(URI.create(BREVO_EMAIL_URL))
                     .header("api-key", brevoApiKey)
                     .header("Content-Type", "application/json")
                     .header("Accept", "application/json")
                     .timeout(Duration.ofSeconds(10))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
 
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -144,11 +155,11 @@ public class OtpService {
             if (statusCode >= 200 && statusCode < 300) {
                 return true;
             } else {
-                log.error("Brevo API error. Status: {}, Response: {}", statusCode, response.body());
+                log.error("Brevo Email API error. Status: {}, Response: {}", statusCode, response.body());
                 return false;
             }
         } catch (Exception e) {
-            log.error("Failed to execute native HttpClient request to Brevo for phone: {}", maskPhone(toPhone), e);
+            log.error("Failed to send HTML OTP Email to: {}", toEmail, e);
             return false;
         }
     }
@@ -181,26 +192,21 @@ public class OtpService {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
         <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; color: #1f2937;">
-            
             <table width="100%%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 40px 20px;">
                 <tr>
                     <td align="center">
-                        
                         <table width="100%%" max-width="600px" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
-                            
                             <tr>
                                 <td align="center" style="background-color: #2563eb; padding: 30px 20px;">
                                     <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px;">SnapBuy</h1>
                                 </td>
                             </tr>
-                            
                             <tr>
                                 <td style="padding: 40px 30px;">
                                     <h2 style="margin-top: 0; color: #111827; font-size: 22px;">Hi %s,</h2>
                                     <p style="font-size: 16px; color: #4b5563; line-height: 1.6; margin-bottom: 24px;">
                                         Here is your one-time verification code to securely access your <strong>SnapBuy</strong> account.
                                     </p>
-                                    
                                     <table width="100%%" border="0" cellspacing="0" cellpadding="0">
                                         <tr>
                                             <td align="center" style="padding: 10px 0 20px 0;">
@@ -210,7 +216,6 @@ public class OtpService {
                                             </td>
                                         </tr>
                                     </table>
-                                    
                                     <p style="font-size: 14px; color: #6b7280; line-height: 1.5; margin-top: 16px; margin-bottom: 16px;">
                                         <em>This code will expire in <strong>%d minutes</strong>.</em>
                                     </p>
@@ -219,7 +224,6 @@ public class OtpService {
                                     </p>
                                 </td>
                             </tr>
-                            
                             <tr>
                                 <td style="background-color: #f9fafb; border-top: 1px solid #e5e7eb; padding: 20px 30px; text-align: center;">
                                     <p style="margin: 0; font-size: 12px; color: #9ca3af;">
@@ -228,7 +232,6 @@ public class OtpService {
                                     </p>
                                 </td>
                             </tr>
-                            
                         </table>
                     </td>
                 </tr>
