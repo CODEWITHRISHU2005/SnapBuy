@@ -2,7 +2,6 @@ package com.CodeWithRishu.SnapBuy.config;
 
 import com.CodeWithRishu.SnapBuy.entity.User;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
