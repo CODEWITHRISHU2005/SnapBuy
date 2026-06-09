@@ -161,7 +161,7 @@ public class OtpService {
         return "****" + phone.substring(phone.length() - 4);
     }
 
-    @Scheduled(fixedRateString = "${app.otp.cleanup-rate-ms}")
+    @Scheduled(fixedRateString = "${otp.cleanup-rate-ms}")
     @Transactional
     public void cleanupExpiredOtp() {
         int count = otpRepository.deleteByExpiresAtBefore(Instant.now());
