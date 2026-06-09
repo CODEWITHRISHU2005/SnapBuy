@@ -116,6 +116,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'accessToken') {
+        if (e.newValue) {
+          setUserFromToken();
+        } else {
+          setUser(null);
+        }
+      } else if (e.key === 'user' && e.newValue) {
+        setUserFromToken();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const login = async (credentials: AuthRequest) => {
     try {
       const response = await authAPI.signIn(credentials);

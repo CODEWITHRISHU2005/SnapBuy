@@ -43,7 +43,7 @@ const LoginPage: React.FC = () => {
   const [adminKey, setAdminKey] = useState('');
   const [address, setAddress] = useState<Address>({ ...initialAddressState });
 
-  const { login, register, setUserFromToken } = useAuth();
+  const { login, register, setUserFromToken, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const storeTokensSafely = (accessToken: string, refreshToken?: string) => {
@@ -161,6 +161,12 @@ const LoginPage: React.FC = () => {
       setError(errorParam === 'oauth_failed' ? 'Google login failed. Please try again.' : errorParam);
     }
   }, [setUserFromToken, navigate]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -409,24 +415,43 @@ const LoginPage: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="animate-slide-in-bottom">
-                    <label htmlFor="ott-token" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                      Token
-                    </label>
-                    <div className="relative group input-glow">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
-                        <Lock className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
+                  <div className="animate-slide-in-bottom space-y-4">
+                    <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 text-sm text-indigo-700 dark:text-indigo-300">
+                      <p className="font-semibold mb-1 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 animate-pulse text-indigo-500" />
+                        Automatic Login Enabled
+                      </p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        Click the sign-in button in your email, and this tab will automatically log you in.
+                      </p>
+                    </div>
+
+                    <div className="relative flex items-center my-4">
+                      <div className="w-full border-t-2 border-slate-200 dark:border-slate-700"></div>
+                      <div className="relative flex justify-center text-xs uppercase w-full">
+                        <span className="px-4 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-semibold">Or enter token manually</span>
                       </div>
-                      <input
-                        id="ott-token"
-                        name="token"
-                        type="text"
-                        required
-                        className="block w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
-                        placeholder="Enter token"
-                        value={ottToken}
-                        onChange={(e) => setOttToken(e.target.value)}
-                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="ott-token" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        Token
+                      </label>
+                      <div className="relative group input-glow">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-all duration-300">
+                          <Lock className="h-5 w-5 transition-transform duration-300 group-focus-within:scale-110" />
+                        </div>
+                        <input
+                          id="ott-token"
+                          name="token"
+                          type="text"
+                          required
+                          className="block w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all duration-300 hover:border-indigo-300 dark:hover:border-indigo-700"
+                          placeholder="Enter token"
+                          value={ottToken}
+                          onChange={(e) => setOttToken(e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
