@@ -28,6 +28,7 @@ function App() {
                   <Route path="/" element={<HomePage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/oauth2/callback" element={<OAuth2Callback />} />
+                  <Route path="/login/success" element={<OAuth2Callback />} />
                   <Route path="/api/ott/login" element={<OttCallback />} />
                   <Route path="/login/ott" element={<OttCallback />} />
                   <Route path="/admin" element={<AdminPage />} />

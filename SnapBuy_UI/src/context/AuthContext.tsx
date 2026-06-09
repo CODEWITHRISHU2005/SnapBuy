@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // Handle OAuth2 redirect to root or other non-callback pages
     // The backend might redirect to /?accessToken=...&refreshToken=...
-    if (!window.location.pathname.startsWith('/oauth2/callback')) {
+    if (!window.location.pathname.startsWith('/oauth2/callback') && !window.location.pathname.startsWith('/login/success')) {
       const params = new URLSearchParams(window.location.search);
       const urlAccessToken = params.get('accessToken');
       const urlRefreshToken = params.get('refreshToken');
