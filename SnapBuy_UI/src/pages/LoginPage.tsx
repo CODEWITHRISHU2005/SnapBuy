@@ -345,8 +345,10 @@ const LoginPage: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    // Correct OAuth2 authorization endpoint for Spring Security
-    window.location.href = `https://snapbuy-app.onrender.com/oauth2/authorization/google`;
+    // Correct OAuth2 authorization endpoint for Spring Security, prefixed with /api
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+    const cleanBaseUrl = apiBaseUrl.endsWith('/') ? apiBaseUrl.slice(0, -1) : apiBaseUrl;
+    window.location.href = `${cleanBaseUrl}/oauth2/authorization/google`;
   };
 
   const isLoginOtpSending = loginOtpStatus === 'sending';

@@ -60,6 +60,7 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/ott/**",
                                 "/api/otp/**",
+                                "/api/oauth2/authorization/**",
                                 "/actuator/health/**",
                                 "/favicon.ico",
                                 "/api/login/oauth2/code/google/**",
@@ -72,6 +73,9 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 ->
                         oauth2
                                 .loginPage("/login")
+                                .authorizationEndpoint(authorization -> authorization
+                                        .baseUri("/api/oauth2/authorization")
+                                )
                                 .redirectionEndpoint(redirection -> redirection
                                         .baseUri("/api/login/oauth2/code/*")
                                 )
