@@ -13,6 +13,11 @@ export default defineConfig({
         target: 'https://snapbuy-app.onrender.com',
         changeOrigin: true,
         secure: false,
+        bypass: (req) => {
+          if (req.headers.accept?.includes('html') && req.url?.startsWith('/api/ott/login')) {
+            return '/index.html';
+          }
+        }
       }
     },
     hmr: {

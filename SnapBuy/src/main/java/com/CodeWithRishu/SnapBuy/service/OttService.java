@@ -69,7 +69,7 @@ public class OttService {
                 .build());
 
         String magicLink = UriComponentsBuilder.fromUriString(frontendUrl)
-                .path("/api/ott/login")
+                .path("/login/ott")
                 .queryParam("token", tokenValue)
                 .toUriString();
 
