@@ -8,23 +8,17 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Optional;
 
 @Repository
 public interface OttTokenRepository extends JpaRepository<OttToken, Integer> {
     Optional<OttToken> findByToken(String token);
 
-    Optional<OttToken> findByUser(User user);
-
-    Optional<OttToken> findByUserAndToken(User user, String token);
-
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM OttToken o WHERE o.token = :token")
-    void deleteByToken(String token);
-
     @Modifying
     @Transactional
     @Query("DELETE FROM OttToken o WHERE o.user = :user")
     void deleteByUser(User user);
+
+    int deleteByExpiryDateBefore(Instant now);
 }

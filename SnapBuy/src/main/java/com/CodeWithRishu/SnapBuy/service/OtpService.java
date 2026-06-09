@@ -6,20 +6,21 @@ import com.CodeWithRishu.SnapBuy.entity.OtpVerification;
 import com.CodeWithRishu.SnapBuy.entity.User;
 import com.CodeWithRishu.SnapBuy.repository.OtpVerificationRepository;
 import com.CodeWithRishu.SnapBuy.repository.UserRepository;
-import com.twilio.Twilio;
-import com.twilio.rest.api.v2010.account.Message;
-import com.twilio.type.PhoneNumber;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
-import java.util.Random;
-import java.util.stream.IntStream;
 
 @Service
 @Slf4j
@@ -29,43 +30,47 @@ public class OtpService {
     private final OtpVerificationRepository otpRepository;
     private final UserRepository userRepository;
 
-    @Value("${twilio.account-sid}")
-    private String accountSid;
-    @Value("${twilio.auth-token}")
-    private String authToken;
-    @Value("${twilio.phone-number}")
-    private String fromPhoneNumber;
-    @Value("${app.otp.expiration-ms:300000}")
-    private long otpExpiration;
-    @Value("${app.otp.length}")
-    private int otpLength;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
 
-    private void initTwilio() {
-        Twilio.init(accountSid, authToken);
-    }
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final String BREVO_SMS_URL = "https://api.brevo.com/v3/transactionalSMS/sms";
+
+    @Value("${brevo.api.key}")
+    private String brevoApiKey;
+
+    @Value("${brevo.sender-name:SnapBuy}")
+    private String senderName;
+
+    @Value("${otp.expiration-ms}")
+    private long otpExpiration;
+
+    @Value("${otp.length}")
+    private int otpLength;
 
     @Transactional
     public OtpResponse sendOtp(OtpRequest otpRequest) {
-        log.info("Sending OTP to phone: {}", maskPhone(otpRequest.phone()));
+        String phone = normalizePhone(otpRequest.phone());
+        log.info("Sending OTP to phone: {}", maskPhone(phone));
 
-        return Optional.of(normalizePhone(otpRequest.phone()))
-                .map(phone -> {
-                    cleanupExpiredOtps();
-                    String otp = generateOtp();
-                    Instant expiresAt = Instant.now().plusMillis(otpExpiration);
+        String otp = generateOtp();
+        Instant expiresAt = Instant.now().plusMillis(otpExpiration);
 
-                    otpRepository.save(OtpVerification.builder()
-                            .phone(phone)
-                            .otp(otp)
-                            .verified(false)
-                            .expiresAt(expiresAt)
-                            .build());
+        otpRepository.save(OtpVerification.builder()
+                .phone(phone)
+                .otp(otp)
+                .verified(false)
+                .expiresAt(expiresAt)
+                .build());
 
-                    return sendSms(phone, otp)
-                            ? new OtpResponse(true, "OTP sent successfully", expiresAt)
-                            : new OtpResponse(false, "Failed to send OTP", null);
-                })
-                .orElseGet(() -> new OtpResponse(false, "Error processing request", null));
+        boolean isSent = sendSms(phone, otp);
+
+        if (isSent) {
+            return new OtpResponse(true, "OTP sent successfully", expiresAt);
+        } else {
+            return new OtpResponse(false, "Failed to send OTP via Brevo", null);
+        }
     }
 
     @Transactional
@@ -90,7 +95,7 @@ public class OtpService {
                     otpRepository.save(verification);
                     return new OtpResponse(true, "Verified successfully!", verification.getExpiresAt());
                 })
-                .orElse(new OtpResponse(false, "No OTP found", null));
+                .orElse(new OtpResponse(false, "No active OTP found", null));
     }
 
     public boolean isPhoneVerified(String phone) {
@@ -98,51 +103,70 @@ public class OtpService {
                 .isPresent();
     }
 
+    @Transactional
     public OtpResponse resendOtp(OtpRequest otpRequest) {
         otpRepository.deleteByPhoneAndVerifiedFalse(normalizePhone(otpRequest.phone()));
         return sendOtp(otpRequest);
     }
 
     private String generateOtp() {
-        return IntStream.range(0, otpLength)
-                .mapToObj(i -> String.valueOf(new Random().nextInt(10)))
-                .reduce("", String::concat);
+        StringBuilder otp = new StringBuilder(otpLength);
+        for (int i = 0; i < otpLength; i++) {
+            otp.append(SECURE_RANDOM.nextInt(10));
+        }
+        return otp.toString();
     }
 
     private boolean sendSms(String toPhone, String otp) {
         try {
-            initTwilio();
-            Message.creator(
-                    new PhoneNumber(toPhone),
-                    new PhoneNumber(fromPhoneNumber),
-                    String.format("Your code: %s. Expires in %d min.", otp, (otpExpiration / 60000))
-            ).create();
-            return true;
+            long minutes = otpExpiration / 60000;
+            String messageContent = String.format("Your SnapBuy verification code is: %s. It expires in %d minutes.", otp, minutes);
+
+            String jsonRequestBody = String.format(
+                    "{\"type\":\"transactional\",\"sender\":\"%s\",\"recipient\":\"%s\",\"content\":\"%s\"}",
+                    senderName, toPhone, messageContent
+            );
+
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(BREVO_SMS_URL))
+                    .header("api-key", brevoApiKey)
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .timeout(Duration.ofSeconds(10))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonRequestBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+            int statusCode = response.statusCode();
+            if (statusCode >= 200 && statusCode < 300) {
+                return true;
+            } else {
+                log.error("Brevo API error. Status: {}, Response: {}", statusCode, response.body());
+                return false;
+            }
         } catch (Exception e) {
-            log.error("Twilio error", e);
+            log.error("Failed to execute native HttpClient request to Brevo for phone: {}", maskPhone(toPhone), e);
             return false;
         }
     }
 
     private String normalizePhone(String phone) {
-        return Optional.ofNullable(phone)
-                .filter(p -> !p.startsWith("+91"))
-                .map(p -> "+91" + p)
-                .orElse(phone);
+        if (phone == null) return null;
+        return phone.startsWith("+91") ? phone : "+91" + phone;
     }
 
     private String maskPhone(String phone) {
-        return Optional.ofNullable(phone)
-                .filter(p -> p.length() >= 4)
-                .map(p -> "****" + p.substring(p.length() - 4))
-                .orElse("****");
+        if (phone == null || phone.length() < 4) return "****";
+        return "****" + phone.substring(phone.length() - 4);
     }
 
+    @Scheduled(fixedRateString = "${app.otp.cleanup-rate-ms}")
     @Transactional
-    public void cleanupExpiredOtps() {
-        Optional.of(otpRepository.deleteByExpiresAtBefore(Instant.now()))
-                .filter(count -> count > 0)
-                .ifPresent(count -> log.info("Cleaned up {} expired OTPs", count));
+    public void cleanupExpiredOtp() {
+        int count = otpRepository.deleteByExpiresAtBefore(Instant.now());
+        if (count > 0) {
+            log.info("Scheduled task cleaned up {} expired OTP records", count);
+        }
     }
-
 }

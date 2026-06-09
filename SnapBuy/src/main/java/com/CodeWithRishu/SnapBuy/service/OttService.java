@@ -8,14 +8,16 @@ import com.CodeWithRishu.SnapBuy.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.sql.SQLException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -24,92 +26,124 @@ import java.util.UUID;
 @Slf4j
 public class OttService {
 
-    private final JavaMailSender javaMailSender;
     private final OttTokenRepository ottTokenRepository;
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
 
-    @Value("${app.api.base-url}")
-    private String appBaseUrl;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+
+    private static final String BREVO_EMAIL_URL = "https://api.brevo.com/v3/smtp/email";
+
+    @Value("${brevo.api.key}")
+    private String brevoApiKey;
+
+    @Value("${brevo.sender-name:SnapBuy}")
+    private String senderName;
+
     @Value("${spring.mail.from}")
     private String mailFrom;
-    @Value("${ott.token.expiry.seconds}")
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
+    @Value("${ott.token.expiry.seconds:900}")
     private long tokenExpirySeconds;
 
-    @Transactional(rollbackFor = SQLException.class)
+    @Transactional
     public void generateMagicLink(String email) {
         log.info("Generating magic link for user: {}", email);
 
-        userRepository.findByEmail(email)
-                .map(user -> {
-                    ottTokenRepository.deleteByUser(user);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
 
-                    String tokenValue = UUID.randomUUID().toString();
-                    ottTokenRepository.save(OttToken.builder()
-                            .token(tokenValue)
-                            .expiryDate(Instant.now().plusSeconds(tokenExpirySeconds))
-                            .user(user)
-                            .build());
+        ottTokenRepository.deleteByUser(user);
 
-                    return UriComponentsBuilder.fromUriString(appBaseUrl)
-                            .path("/api/ott/login")
-                            .queryParam("token", tokenValue)
-                            .toUriString();
-                })
-                .ifPresentOrElse(
-                        link -> sendOttNotification(email, link),
-                        () -> {
-                            throw new IllegalArgumentException("User not found: " + email);
-                        }
-                );
+        String tokenValue = UUID.randomUUID().toString();
+        ottTokenRepository.save(OttToken.builder()
+                .token(tokenValue)
+                .expiryDate(Instant.now().plusSeconds(tokenExpirySeconds))
+                .user(user)
+                .build());
+
+        String magicLink = UriComponentsBuilder.fromUriString(frontendUrl)
+                .path("/api/ott/login")
+                .queryParam("token", tokenValue)
+                .toUriString();
+
+        boolean isSent = sendOttEmailViaBrevo(user, magicLink);
+        if (!isSent) {
+            throw new RuntimeException("Failed to send magic link email. Transaction rolled back.");
+        }
     }
 
-    private void sendOttNotification(String email, String magicLink) {
-        userRepository.findByEmail(email).ifPresent(user -> {
-            try {
-                javaMailSender.send(getSimpleMailMessage(user, magicLink));
-                log.info("Magic link email sent successfully to {}", email);
-            } catch (MailException e) {
-                log.error("Failed to send email to {}: {}", email, e.getMessage());
-                throw new RuntimeException("Failed to send notification email.", e);
+    private boolean sendOttEmailViaBrevo(User user, String magicLink) {
+        try {
+            long minutes = tokenExpirySeconds / 60;
+            String safeName = user.getName() != null ? user.getName().replace("\"", "\\\"") : "User";
+
+            String jsonPayload = "{"
+                    + "\"sender\":{\"name\":\"" + senderName + "\",\"email\":\"" + mailFrom + "\"},"
+                    + "\"to\":[{\"email\":\"" + user.getEmail() + "\",\"name\":\"" + safeName + "\"}],"
+                    + "\"subject\":\"Your SnapBuy Sign-In Link\","
+                    + "\"htmlContent\":\"<p>Hello " + safeName + ",</p><p>Click <a href='" + magicLink + "'>here</a> to sign in to your SnapBuy account.</p><p>This link is valid for " + minutes + " minutes.</p>\""
+                    + "}";
+
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(BREVO_EMAIL_URL))
+                    .header("api-key", brevoApiKey)
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .timeout(Duration.ofSeconds(10))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+            int statusCode = response.statusCode();
+            if (statusCode >= 200 && statusCode < 300) {
+                log.info("Magic link email sent successfully to {}", user.getEmail());
+                return true;
+            } else {
+                log.error("Brevo Email API error. Status: {}, Response: {}", statusCode, response.body());
+                return false;
             }
-        });
+        } catch (Exception e) {
+            log.error("Failed to execute native HttpClient request to Brevo for email: {}", user.getEmail(), e);
+            return false;
+        }
     }
 
-    private SimpleMailMessage getSimpleMailMessage(User user, String magicLink) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(mailFrom);
-        message.setTo(user.getEmail());
-        message.setSubject("Your SnapBuy Sign-In Link");
-        message.setText(String.format("""
-                 Hello %s,
-                
-                 Click the link below to sign in to your SnapBuy account:
-                
-                 %s
-                
-                 This link is valid for %d minutes.
-                """, user.getName(), magicLink, tokenExpirySeconds / 60));
-        return message;
-    }
-
+    @Transactional
     public JwtResponse loginWithOttToken(String token) {
-        log.info("Logging in with OTT token: {}", token);
+        log.info("Attempting login with OTT token");
 
-        return ottTokenRepository.findByToken(token)
-                .filter(ottToken -> {
-                    if (ottToken.getExpiryDate().isAfter(Instant.now())) return true;
-                    ottTokenRepository.deleteByToken(token);
-                    return false;
-                })
-                .map(ottToken -> {
-                    User user = ottToken.getUser();
-                    return JwtResponse.builder()
-                            .accessToken(jwtService.generateToken(user))
-                            .refreshToken(refreshTokenService.createRefreshToken(user.getEmail()).getToken())
-                            .build();
-                })
-                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired token."));
+        OttToken ottToken = ottTokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid token."));
+
+        if (ottToken.getExpiryDate().isBefore(Instant.now())) {
+            ottTokenRepository.delete(ottToken);
+            throw new IllegalArgumentException("Token has expired.");
+        }
+
+        User user = ottToken.getUser();
+
+        ottTokenRepository.delete(ottToken);
+
+        return JwtResponse.builder()
+                .accessToken(jwtService.generateToken(user))
+                .refreshToken(refreshTokenService.createRefreshToken(user.getEmail()).getToken())
+                .build();
+    }
+
+    @Scheduled(fixedRateString = "${ott.cleanup-rate-ms}")
+    @Transactional
+    public void cleanupExpiredOttTokens() {
+        int count = ottTokenRepository.deleteByExpiryDateBefore(Instant.now());
+        if (count > 0) {
+            log.info("Scheduled task cleaned up {} expired OTT records", count);
+        }
     }
 }

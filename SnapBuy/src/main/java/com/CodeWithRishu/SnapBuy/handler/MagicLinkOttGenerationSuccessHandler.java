@@ -6,8 +6,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailSender;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.ott.OneTimeToken;
 import org.springframework.security.web.authentication.ott.OneTimeTokenGenerationSuccessHandler;
 import org.springframework.security.web.authentication.ott.RedirectOneTimeTokenGenerationSuccessHandler;
@@ -16,6 +14,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,7 +27,20 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class MagicLinkOttGenerationSuccessHandler implements OneTimeTokenGenerationSuccessHandler {
 
-    private final MailSender mailSender;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+
+    private static final String BREVO_EMAIL_URL = "https://api.brevo.com/v3/smtp/email";
+
+    @Value("${brevo.api.key}")
+    private String brevoApiKey;
+
+    @Value("${brevo.sender-name:SnapBuy}")
+    private String senderName;
+
+    @Value("${spring.mail.from:noreply@snapbuy.com}")
+    private String mailFrom;
 
     @Value("${ott.token.expiry.seconds}")
     private int magicLinkExpirySeconds;
@@ -41,11 +57,11 @@ public class MagicLinkOttGenerationSuccessHandler implements OneTimeTokenGenerat
 
         String username = oneTimeToken.getUsername();
         String recipientEmail = this.getUserEmail(username);
+
         sendMagicLinkAsync(recipientEmail, magicLink, username);
 
         this.redirectHandler.handle(request, response, oneTimeToken);
     }
-
 
     private String buildMagicLink(HttpServletRequest request, OneTimeToken oneTimeToken) {
         return UriComponentsBuilder
@@ -65,51 +81,59 @@ public class MagicLinkOttGenerationSuccessHandler implements OneTimeTokenGenerat
     }
 
     private void sendMagicLinkAsync(String recipientEmail, String magicLink, String username) {
-        CompletableFuture.runAsync(() -> sendMagicLinkEmail(recipientEmail, magicLink, username))
+        CompletableFuture.runAsync(() -> sendMagicLinkEmailViaBrevo(recipientEmail, magicLink, username))
                 .exceptionally(throwable -> {
-                    log.error("Failed to send magic link email to user: {}", username, throwable);
+                    log.error("Failed to execute async magic link email for user: {}", username, throwable);
                     return null;
                 });
     }
 
-    private void sendMagicLinkEmail(String recipientEmail, String magicLink, String username) {
+    private void sendMagicLinkEmailViaBrevo(String recipientEmail, String magicLink, String username) {
         try {
-            SimpleMailMessage message = createEmailMessage(recipientEmail, magicLink, username);
-            mailSender.send(message);
-            log.info("Magic link email sent successfully to: {}", recipientEmail);
+            String safeName = username != null ? username.replace("\"", "\\\"") : "User";
+            String htmlContent = buildHtmlEmailContent(magicLink, safeName);
+
+            String jsonPayload = "{"
+                    + "\"sender\":{\"name\":\"" + senderName + "\",\"email\":\"" + mailFrom + "\"},"
+                    + "\"to\":[{\"email\":\"" + recipientEmail + "\",\"name\":\"" + safeName + "\"}],"
+                    + "\"subject\":\"Your SnapBuy Magic Link - Sign In Securely\","
+                    + "\"htmlContent\":\"" + htmlContent + "\""
+                    + "}";
+
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(BREVO_EMAIL_URL))
+                    .header("api-key", brevoApiKey)
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .timeout(Duration.ofSeconds(10))
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+            int statusCode = response.statusCode();
+            if (statusCode >= 200 && statusCode < 300) {
+                log.info("Magic link email sent successfully to: {}", recipientEmail);
+            } else {
+                log.error("Brevo Email API error. Status: {}, Response: {}", statusCode, response.body());
+                throw new RuntimeException("Brevo API returned status " + statusCode);
+            }
         } catch (Exception e) {
             log.error("Failed to send magic link email to: {}", recipientEmail, e);
             throw new RuntimeException("Failed to send magic link email", e);
         }
     }
 
-    private SimpleMailMessage createEmailMessage(String recipientEmail, String magicLink, String username) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(recipientEmail);
-        message.setSubject("Your VideoStream Magic Link - Sign In Securely");
-        message.setText(buildEmailContent(magicLink, username));
-        message.setFrom("noreply@videostream.com");
-        return message;
+    private String buildHtmlEmailContent(String magicLink, String username) {
+        return String.format(
+                "<p>Hi %s,</p>" +
+                        "<p>You requested to sign in to your SnapBuy account. Click the secure link below to sign in:</p>" +
+                        "<p><a href='%s' style='display:inline-block;padding:10px 20px;background-color:#007BFF;color:#FFF;text-decoration:none;border-radius:5px;'>Sign In Securely</a></p>" +
+                        "<p>This link will expire in %d minutes for your security.</p>" +
+                        "<p>If you didn't request this login, please ignore this email.</p>" +
+                        "<br><p>Best regards,<br>The SnapBuy Team</p>" +
+                        "<hr><p><small>This is an automated message. Please do not reply to this email.</small></p>",
+                username, magicLink, magicLinkExpirySeconds / 60
+        );
     }
-
-    private String buildEmailContent(String magicLink, String username) {
-        return String.format("""
-                Hi %s,
-                
-                You requested to sign in to your SnapBuy account. Click the secure link below to sign in:
-                
-                %s
-                
-                This link will expire in %d minutes for your security.
-                
-                If you didn't request this login, please ignore this email.
-                
-                Best regards,
-                The SnapBuy Team
-                
-                ---
-                This is an automated message. Please do not reply to this email.
-                """, username, magicLink, magicLinkExpirySeconds / 60);
-    }
-
 }

@@ -4,12 +4,11 @@ import com.CodeWithRishu.SnapBuy.handler.JwtAuthFilter;
 import com.CodeWithRishu.SnapBuy.handler.MagicLinkOttGenerationSuccessHandler;
 import com.CodeWithRishu.SnapBuy.handler.OAuth2SuccessHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpMethod;
-import org.springframework.mail.MailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -29,26 +28,19 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
-    private final MailSender mailSender;
 
-
-    public SecurityConfig(
-            UserDetailsService userDetailsService,
-            MailSender mailSender,
-            @Lazy OAuth2SuccessHandler oAuth2SuccessHandler
-    ) {
-        this.userDetailsService = userDetailsService;
-        this.mailSender = mailSender;
-        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
-    }
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     @Value("${app.auth.failure-redirect}")
     private String failureRedirectURL;
@@ -134,13 +126,13 @@ public class SecurityConfig {
 
     @Bean
     public MagicLinkOttGenerationSuccessHandler oneTimeTokenGenerationSuccessHandler() {
-        return new MagicLinkOttGenerationSuccessHandler(mailSender);
+        return new MagicLinkOttGenerationSuccessHandler();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("https://snap-buy-app.vercel.app", "http://localhost:5000"));
+        configuration.setAllowedOrigins(Collections.singletonList(frontendUrl));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
         configuration.setAllowCredentials(true);

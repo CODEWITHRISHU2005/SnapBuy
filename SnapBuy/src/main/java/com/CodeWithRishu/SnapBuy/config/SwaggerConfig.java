@@ -18,10 +18,10 @@ import java.util.List;
 @Configuration
 public class SwaggerConfig {
 
-    @Value("${server.port:8080}")
+    @Value("${server.port}")
     private String serverPort;
 
-    @Value("${app.api.base-url}")
+    @Value("${app.base.url}")
     private String baseUrl;
 
     @Bean
