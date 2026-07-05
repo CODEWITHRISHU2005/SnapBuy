@@ -21,7 +21,7 @@ public class ChatService {
         var documentRetriever = VectorStoreDocumentRetriever.builder()
                 .vectorStore(vectorStore)
                 .topK(5)
-                .similarityThreshold(0.7d)
+                .similarityThreshold(0.5d)
                 .build();
 
         this.ragAdvisor = RetrievalAugmentationAdvisor.builder()
