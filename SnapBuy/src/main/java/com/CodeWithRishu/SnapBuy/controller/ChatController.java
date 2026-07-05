@@ -1,6 +1,7 @@
 package com.CodeWithRishu.SnapBuy.controller;
 
 import com.CodeWithRishu.SnapBuy.service.ChatService;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,9 +19,9 @@ public class ChatController {
 
     @GetMapping("/ask")
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<String> askBot(@RequestParam String message){
+    public ResponseEntity<String> askBot(@RequestParam String message, HttpSession session){
 
-        String response = chatService.getResponse(message);
+        String response = chatService.getResponse(message, session.getId());
         return ResponseEntity.ok(response);
     }
 

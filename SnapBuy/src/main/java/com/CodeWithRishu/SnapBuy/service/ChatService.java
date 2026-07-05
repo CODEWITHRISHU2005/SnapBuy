@@ -2,6 +2,8 @@ package com.CodeWithRishu.SnapBuy.service;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
@@ -26,17 +28,20 @@ public class ChatService {
                 .documentRetriever(documentRetriever)
                 .build();
 
-        this.memoryAdvisor = MessageChatMemoryAdvisor.builder(MessageWindowChatMemory.builder().maxMessages(5).build())
-                .build();
+        this.memoryAdvisor = MessageChatMemoryAdvisor.builder(
+                MessageWindowChatMemory.builder().maxMessages(5).build()
+        ).build();
 
-        this.chatClient = chatClientBuilder.build();
+        this.chatClient = chatClientBuilder
+                .defaultAdvisors(ragAdvisor, memoryAdvisor)
+                .build();
     }
 
-    public String getResponse(String userQuery) {
+    public String getResponse(String userQuery, String conversationId) {
         try {
             return chatClient.prompt()
                     .user(userQuery)
-                    .advisors(ragAdvisor, memoryAdvisor)
+                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
                     .call()
                     .content();
         } catch (Exception e) {
