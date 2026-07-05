@@ -135,6 +135,7 @@ public class ProductService {
 
     public void deleteProduct(long id) {
         productRepository.deleteById(id);
+        vectorStore.delete(List.of(String.valueOf(id)));
         log.info("Product with id {} deleted successfully", id);
     }
 

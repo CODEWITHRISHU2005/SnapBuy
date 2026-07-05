@@ -1,73 +1,46 @@
 package com.CodeWithRishu.SnapBuy.service;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.prompt.PromptTemplate;
-import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
+import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
 
-    private final ResourceLoader resourceLoader;
-    private final VectorStore vectorStore;
     private final ChatClient chatClient;
+    private final RetrievalAugmentationAdvisor ragAdvisor;
+    private final MessageChatMemoryAdvisor memoryAdvisor;
 
-    public ChatService(ChatClient.Builder chatClientBuilder,
-                       ResourceLoader resourceLoader,
-                       VectorStore vectorStore) {
-        this.resourceLoader = resourceLoader;
-        this.vectorStore = vectorStore;
+    public ChatService(ChatClient.Builder chatClientBuilder, VectorStore vectorStore) {
+        var documentRetriever = VectorStoreDocumentRetriever.builder()
+                .vectorStore(vectorStore)
+                .topK(5)
+                .similarityThreshold(0.7d)
+                .build();
+
+        this.ragAdvisor = RetrievalAugmentationAdvisor.builder()
+                .documentRetriever(documentRetriever)
+                .build();
+
+        this.memoryAdvisor = MessageChatMemoryAdvisor.builder(MessageWindowChatMemory.builder().maxMessages(5).build())
+                .build();
+
         this.chatClient = chatClientBuilder.build();
     }
 
     public String getResponse(String userQuery) {
-
         try {
-            String promptStringTemplate = Files.readString(
-                    resourceLoader.getResource("classpath:prompts/chatbot-rag-prompt.st")
-                            .getFile()
-                            .toPath()
-            );
-
-            String context = fetchSemanticContext(userQuery);
-
-            Map<String, Object> variables = new HashMap<>();
-            variables.put("userQuery", userQuery);
-            variables.put("context", context);
-
-            PromptTemplate promptTemplate = PromptTemplate.builder()
-                    .template(promptStringTemplate)
-                    .variables(variables)
-                    .build();
-
-            return chatClient.prompt(promptTemplate.create()).call().content();
-
-        } catch (IOException e) {
-            return "Bot Failed " + e.getMessage();
+            return chatClient.prompt()
+                    .user(userQuery)
+                    .advisors(ragAdvisor, memoryAdvisor)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            return "Bot Failed: " + e.getMessage();
         }
-
     }
-
-    private String fetchSemanticContext(String userQuery) {
-        return vectorStore.similaritySearch(
-                        SearchRequest.builder()
-                                .query(userQuery)
-                                .topK(5)
-                                .similarityThreshold(0.7f)
-                                .build()
-                )
-                .stream()
-                .map(Document::getFormattedContent)
-                .collect(Collectors.joining("\n"));
-    }
-
 }
