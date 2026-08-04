@@ -3,6 +3,7 @@ package com.CodeWithRishu.SnapBuy.config;
 import com.CodeWithRishu.SnapBuy.handler.JwtAuthFilter;
 import com.CodeWithRishu.SnapBuy.handler.MagicLinkOttGenerationSuccessHandler;
 import com.CodeWithRishu.SnapBuy.handler.OAuth2SuccessHandler;
+import com.CodeWithRishu.SnapBuy.handler.RateLimitFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,6 +39,7 @@ public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final RateLimitFilter rateLimitFilter;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -107,6 +109,7 @@ public class SecurityConfig {
                         resp.getWriter().println(om.writeValueAsString(Map.of("message", e.getMessage())));
                     }
                 }))
+                .addFilterBefore(rateLimitFilter, JwtAuthFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
