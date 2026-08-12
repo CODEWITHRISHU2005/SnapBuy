@@ -258,6 +258,7 @@ public class SwaggerConfig {
     }
 
     @Bean
+    @Primary
     public OperationCustomizer globalOperationCustomizer() {
         return (operation, handlerMethod) -> {
             if (operation.getParameters() == null
