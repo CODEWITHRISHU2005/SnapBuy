@@ -1,9 +1,7 @@
 package com.CodeWithRishu.SnapBuy.controller;
 
-import com.CodeWithRishu.SnapBuy.dto.request.OtpRequest;
 import com.CodeWithRishu.SnapBuy.dto.request.RefreshTokenRequest;
 import com.CodeWithRishu.SnapBuy.dto.response.JwtResponse;
-import com.CodeWithRishu.SnapBuy.dto.response.OtpResponse;
 import com.CodeWithRishu.SnapBuy.entity.RefreshToken;
 import com.CodeWithRishu.SnapBuy.entity.User;
 import com.CodeWithRishu.SnapBuy.service.AuthService;
@@ -28,25 +26,6 @@ public class AuthController {
     private final OtpService otpService;
     private final AuthService authService;
     private final RefreshTokenService refreshTokenService;
-
-    @PostMapping("/signIn")
-    public JwtResponse authenticateAndGetToken(@RequestBody OtpRequest otpRequest) {
-        OtpResponse verifyOtpResponse = otpService.verifyOtp(otpRequest);
-
-        if (!verifyOtpResponse.success()) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    verifyOtpResponse.message()
-            );
-        }
-
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(otpRequest.email());
-        User user = refreshToken.getUserInfo();
-
-        return JwtResponse.builder()
-                .accessToken(jwtService.generateToken(user))
-                .refreshToken(refreshToken.getToken()).build();
-    }
 
     @PostMapping("/signUp")
     public JwtResponse registerAndGetAccessAndRefreshToken(@RequestBody User userInfo) {
