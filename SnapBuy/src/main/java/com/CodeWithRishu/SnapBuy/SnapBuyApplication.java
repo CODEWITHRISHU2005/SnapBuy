@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 
 @SpringBootApplication
 @EnableScheduling
-@CrossOrigin(origins = "${app.frontend.url}")
+@CrossOrigin(origins = "${app.frontend.url}, ${app.base.url}")
 public class SnapBuyApplication {
 
     public static void main(String[] args) {
