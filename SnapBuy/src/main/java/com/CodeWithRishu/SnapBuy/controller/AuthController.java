@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@io.swagger.v3.oas.annotations.tags.Tag(name = "Auth", description = "Authentication and authorization endpoints")
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 public class AuthController {

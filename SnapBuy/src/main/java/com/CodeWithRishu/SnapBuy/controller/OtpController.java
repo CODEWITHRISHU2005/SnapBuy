@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@io.swagger.v3.oas.annotations.tags.Tag(name = "OTP", description = "OTP generation and verification")
 @RequestMapping("/api/otp")
 @Slf4j
 @RequiredArgsConstructor

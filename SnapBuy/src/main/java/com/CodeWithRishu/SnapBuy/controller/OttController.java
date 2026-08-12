@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@io.swagger.v3.oas.annotations.tags.Tag(name = "OTT", description = "OTT generation and verification")
 @RequestMapping("/api/ott")
 public class OttController {
 
