@@ -44,9 +44,11 @@ public class SecurityConfig {
     private String frontendUrl;
     @Value("${app.base.url}")
     private String backendUrl;
+    @Value("${server.port}")
+    private String port;
+
     @Value("${app.auth.failure-redirect}")
     private String failureRedirectURL;
-
     @Value("${app.auth.success-redirect}")
     private String successRedirectURL;
 
@@ -139,7 +141,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(frontendUrl, backendUrl + ":10000"));
+        configuration.setAllowedOrigins(Arrays.asList(frontendUrl, backendUrl + port));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
         configuration.setAllowCredentials(true);
