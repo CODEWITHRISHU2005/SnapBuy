@@ -21,7 +21,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private final RateLimitService rateLimitService;
     private static final List<String> RATE_LIMITING_PATHS = List.of(
             "/api/auth",
             "/api/otp",
@@ -30,6 +29,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             "/api/orders",
             "/api/products"
     );
+    private final RateLimitService rateLimitService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

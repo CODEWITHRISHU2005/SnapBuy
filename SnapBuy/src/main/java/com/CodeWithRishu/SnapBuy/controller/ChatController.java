@@ -19,7 +19,7 @@ public class ChatController {
 
     @GetMapping("/ask")
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<String> askBot(@RequestParam String message, HttpSession session){
+    public ResponseEntity<String> askBot(@RequestParam String message, HttpSession session) {
 
         String response = chatService.getResponse(message, session.getId());
         return ResponseEntity.ok(response);

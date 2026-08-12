@@ -24,9 +24,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final CustomUserDetailsService userDetailsService;
-    private final JwtService jwtService;
-
     private static final List<String> EXCLUDED_PREFIXES = List.of(
             "/api/auth/",
             "/api/ott/",
@@ -37,11 +34,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             "/error",
             "/favicon.ico"
     );
-
     private static final List<String> EXCLUDED_EXACT = List.of(
             "/api/products/search",
             "/api/products/pagination-sorting"
     );
+    private final CustomUserDetailsService userDetailsService;
+    private final JwtService jwtService;
 
     @Override
     protected void doFilterInternal(

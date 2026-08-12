@@ -24,9 +24,9 @@ import java.util.Map;
                 version = "${app.version:1.0.0}",
                 description = """
                             SnapBuy backend API that powers a modern E-Commerce Application.
-
+                        
                             Use the provided API to manage users, products, carts, orders and payments. Most protected endpoints require a Bearer (JWT) token.
-
+                        
                             Best practices:
                             - Use the `X-Request-ID` header to trace requests through logs.
                             - Provide `Accept: application/json` and `Content-Type: application/json` for payloads.
@@ -96,6 +96,7 @@ import java.util.Map;
 public class SwaggerConfig {
 
     private static final Map<String, String> STANDARD_ERROR_RESPONSES = new LinkedHashMap<>();
+
     static {
         STANDARD_ERROR_RESPONSES.put("400", "Bad Request");
         STANDARD_ERROR_RESPONSES.put("401", "Unauthorized - invalid or missing credentials");
