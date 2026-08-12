@@ -24,6 +24,7 @@ import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.lang.NonNull;
 
 import java.util.LinkedHashMap;
@@ -35,7 +36,7 @@ public class SwaggerConfig {
 
     private static final String API_DESCRIPTION =
             """
-                    SnapBuy backend API that powers a modern e-commerce application.
+                    SnapBuy backend API that powers a modern E-Commerce Application.
 
                     Use the provided API to manage users, products, carts, orders and payments. Most protected endpoints require a Bearer (JWT) token.
 
@@ -234,6 +235,7 @@ public class SwaggerConfig {
     }
 
     @Bean
+    @Primary
     public OpenApiCustomizer globalOpenApiCustomiser() {
         return openApi -> {
             if (openApi.getPaths() == null) return;
